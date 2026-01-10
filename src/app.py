@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from supabase_client import get_supabase
 from data.loaders import fetch_demand_range, fetch_carbon_range, fetch_weather_range, fetch_date_bounds
 from components.sidebar import render_sidebar
-from components.charts import demand_chart, carbon_chart, weather_charts, summary_kpis, multi_series_chart, uk_carbon_map, explanatory_summary, uk_import_dependency, carbon_heatmap
+from components.charts import demand_chart, carbon_chart, weather_charts, summary_kpis, multi_series_chart, uk_carbon_map, explanatory_summary, uk_import_dependency, carbon_heatmap, generation_mix_stacked_bar
 
 load_dotenv()
 
@@ -119,8 +119,18 @@ elif st.session_state.active_tab == 1:  # Demand & Carbon
     carbon_heatmap(carbon_df)
     
     st.divider()
+    st.subheader("Generation Mix: Renewable vs Non-Renewable")
+    generation_mix_stacked_bar(carbon_df)
+    st.divider()
     st.subheader("UK Import Dependency")
     uk_import_dependency(demand_df)
 
 elif st.session_state.active_tab == 2:  # Weather
+    from components.charts import render_weather_energy_relevance, exploratory_scatter_plot
     weather_charts(weather_df, selected_regions, start_date, end_date, focus_metric=st.session_state.focus_metric)
+    st.divider()
+    st.markdown("<h3 style='margin-bottom:0.5rem;'>Weather → Energy Relevance</h3>", unsafe_allow_html=True)
+    render_weather_energy_relevance(weather_df)
+    st.divider()
+    st.markdown("<h3 style='margin-bottom:0.5rem;'>Weather/Energy Exploratory Scatter Plot</h3>", unsafe_allow_html=True)
+    exploratory_scatter_plot(weather_df, demand_df, carbon_df)

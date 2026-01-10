@@ -64,15 +64,15 @@ def render_sidebar(supabase, min_date: date, max_date: date):
         
         st.divider()
         
-        # Region selector with country-level options
-        region_mode = st.radio("Region Selection", ["Country", "Single Region", "Multiple Regions", "All Regions"], key="region_mode")
-        
+        # Region selector defaults to 'Single Region' with first region as default
+        region_mode = st.radio("Region Selection", ["Single Region", "Country", "Multiple Regions", "All Regions"], key="region_mode", index=0)
+
         if region_mode == "Country":
             selected_country = st.selectbox("Country", COUNTRIES, key="country_select")
             selected_regions = COUNTRY_TO_REGIONS[selected_country]
             st.caption(f"Includes: {', '.join(selected_regions)}")
         elif region_mode == "Single Region":
-            selected_regions = [st.selectbox("Region", REGIONS, key="single_region")]
+            selected_regions = [st.selectbox("Region", REGIONS, key="single_region", index=0)]
         elif region_mode == "Multiple Regions":
             selected_regions = st.multiselect("Regions", REGIONS, default=[REGIONS[0]], key="multi_regions")
         else:  # All Regions

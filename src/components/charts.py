@@ -1269,3 +1269,199 @@ def weather_charts(df: pd.DataFrame, selected_regions: list, start_date: date, e
             st.warning(f"No {col_name} data available.")
     else:
         st.info("Weather heatmap requires more than 7 days of data. Please expand your date range to see patterns by hour and day of week.")
+
+
+def generation_mix_stacked_bar(carbon_df: pd.DataFrame):
+    """Plot a stacked bar chart of renewable vs non-renewable generation mix."""
+    if carbon_df.empty:
+        st.info("No carbon data available for the selected date range.")
+        return
+
+    # Define groupings and colors
+    group_map = {
+        "Fossil Fuels": [
+            ("gen_coal", "Coal", "#636363"),
+            ("gen_gas_imports", "Gas", "#fc8d62")  # Merged Gas + Imports
+        ],
+        "Renewables": [
+            ("gen_biomass", "Biomass", "#8dd3c7"),
+            ("gen_hydro", "Hydro", "#1f78b4"),
+            ("gen_solar", "Solar", "#ffd92f"),
+            ("gen_wind", "Wind", "#66c2a5")
+        ],
+        "Low Carbon": [
+            ("gen_nuclear", "Nuclear", "#bebada"),
+            ("gen_other", "Other Low Carbon", "#b3b3b3")  # fallback
+        ],
+        "Other": [
+            ("gen_other", "Other", "#fb8072")
+        ]
+    }
+
+    # Find available columns and calculate means
+    mix_df = carbon_df.copy()
+    group_cols = ["datetime"] if "datetime" in mix_df.columns else []
+    # Special handling: merge gen_gas and gen_imports into gen_gas_imports
+    temp_df = mix_df.copy()
+    if "gen_gas" in temp_df.columns or "gen_imports" in temp_df.columns:
+        temp_df["gen_gas_imports"] = temp_df.get("gen_gas", 0) + temp_df.get("gen_imports", 0)
+    all_cols = [col for group in group_map.values() for col, _, _ in group]
+    available_cols = [col for col in all_cols if col in temp_df.columns]
+    if not available_cols:
+        st.warning("No generation mix columns found in data.")
+        return
+    if group_cols:
+        temp_df = temp_df.groupby(group_cols)[available_cols].mean().reset_index()
+    else:
+        temp_df = temp_df[available_cols].mean().to_frame().T
+
+    avg_vals = temp_df[available_cols].mean().to_dict()
+    total_percent = sum(avg_vals.values())
+    total_gw = temp_df["total_generation_gw"].mean() if "total_generation_gw" in temp_df.columns else None
+
+    bar_data = []
+    for group, sources in group_map.items():
+        for col, name, color in sources:
+            if col in avg_vals:
+                percent = avg_vals[col]
+                gw = (percent / 100 * total_gw) if total_gw else None
+                bar_data.append({
+                    "Group": group,
+                    "Source": name,
+                    "Percent": percent,
+                    "GW": gw,
+                    "Color": color
+                })
+
+    plot_df = pd.DataFrame(bar_data)
+    plot_df = plot_df[plot_df["Percent"] > 0]
+
+    # Plot grouped stacked bars
+    fig = go.Figure()
+    for group in plot_df["Group"].unique():
+        group_df = plot_df[plot_df["Group"] == group]
+        fig.add_trace(go.Bar(
+            x=[group]*len(group_df),
+            y=group_df["Percent"],
+            name=group,
+            marker_color=group_df["Color"],
+            width=0.3,  # Make bars thinner
+            text=[
+                (f"{row['Percent']:.1f}%" + (f"<br>{row['GW']:.1f} GW" if row['GW'] is not None else ""))
+                for _, row in group_df.iterrows()
+            ],
+            textposition="inside",
+            customdata=group_df["Source"],
+            hovertemplate="%{customdata}: %{y:.1f}%" + ("<br>%{text}" if total_gw else "") + "<extra></extra>",
+        ))
+
+    fig.update_layout(
+        barmode="stack",
+        title="Generation Type - Today",
+        yaxis=dict(title="Generation (% of total)", range=[0, 100], color="#fafafa"),
+        xaxis=dict(title="", color="#fafafa"),
+        plot_bgcolor="#232734",
+        paper_bgcolor="#232734",
+        font=dict(color="#fafafa"),
+        showlegend=False,
+        height=450,
+        width=900,  # Wider figure for thinner look
+        margin=dict(t=60, b=40, l=40, r=20)
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+def exploratory_scatter_plot(weather_df: pd.DataFrame, demand_df: pd.DataFrame, carbon_df: pd.DataFrame):
+    """Scatter plot with dropdowns: X=weather variable, Y=energy variable (demand/carbon/renewable proxy), using filtered timestamps."""
+    # Merge on datetime
+    if weather_df.empty or (demand_df.empty and carbon_df.empty):
+        st.info("Not enough data for scatter plot.")
+        return
+
+    # Prepare mergeable dataframes
+    wdf = weather_df.copy()
+    ddf = demand_df.copy()
+    cdf = carbon_df.copy()
+    # Convert all to pandas datetime (remove tz info for merge)
+    for df in [wdf, ddf, cdf]:
+        if "datetime" in df.columns:
+            df["datetime"] = pd.to_datetime(df["datetime"]).dt.tz_localize(None)
+
+    # Merge all on datetime (inner join)
+    merged = wdf
+    if not ddf.empty:
+        merged = pd.merge(merged, ddf, on="datetime", how="inner", suffixes=("", "_d"))
+    if not cdf.empty:
+        merged = pd.merge(merged, cdf, on="datetime", how="inner", suffixes=("", "_c"))
+
+    # Weather variables for X
+    weather_vars = [col for col in ["temperature", "wind_speed", "cloud_cover", "humidity", "precipitation"] if col in merged.columns]
+    # Energy variables for Y
+    energy_vars = []
+    if "tsd" in merged.columns:
+        energy_vars.append(("tsd", "Demand (MW)"))
+    if "forecast" in merged.columns:
+        energy_vars.append(("forecast", "Carbon Intensity (gCO₂/kWh)"))
+    # Renewable proxy: wind + solar generation if available
+    if "gen_wind" in merged.columns or "gen_solar" in merged.columns:
+        merged["renewable_proxy"] = merged.get("gen_wind", 0) + merged.get("gen_solar", 0)
+        energy_vars.append(("renewable_proxy", "Renewable Proxy (%)"))
+
+    if not weather_vars or not energy_vars:
+        st.info("No suitable variables for scatter plot.")
+        return
+
+    x_var = st.selectbox("Weather variable (X)", weather_vars, key="scatter_x")
+    y_var, y_label = st.selectbox("Energy variable (Y)", energy_vars, format_func=lambda x: x[1], key="scatter_y")
+
+    fig = px.scatter(
+        merged, x=x_var, y=y_var,
+        title=f"Scatter: {x_var} vs {y_label}",
+        labels={x_var: x_var.replace('_', ' ').title(), y_var: y_label},
+        opacity=0.7,
+        color_discrete_sequence=["#38bdf8"],
+        height=400
+    )
+    st.plotly_chart(fig, use_container_width=True)
+def render_weather_energy_relevance(weather_df: pd.DataFrame):
+    """Panel showing wind and solar availability indices with Low/Moderate/High labels."""
+    if weather_df.empty:
+        st.info("No weather data available for the selected date range.")
+        return
+
+    # Wind index: use average wind speed
+    wind_speed = weather_df["wind_speed"].mean() if "wind_speed" in weather_df.columns else None
+    # Solar index: use average (100 - cloud_cover)
+    solar_index = None
+    if "cloud_cover" in weather_df.columns:
+        solar_index = 100 - weather_df["cloud_cover"].mean()
+
+    def label_index(val, low, high):
+        if val is None:
+            return ("N/A", "#888888")
+        if val < low:
+            return ("Low", "#ef4444")
+        elif val < high:
+            return ("Moderate", "#eab308")
+        else:
+            return ("High", "#22c55e")
+
+    wind_label, wind_color = label_index(wind_speed, 10, 20)
+    solar_label, solar_color = label_index(solar_index, 30, 60)
+
+    st.markdown(f"""
+    <div style="background: linear-gradient(135deg, #232742 0%, #1a1a2e 100%); padding: 1rem 1.2rem; border-radius: 10px; border-left: 3px solid #22c55e; margin: 1rem 0;">
+        <h4 style="margin: 0 0 0.7rem 0; color: #fff; font-size: 1.05rem; font-weight: 700; letter-spacing: 0.01em;">Weather → Energy Relevance</h4>
+        <div style="display: flex; gap: 2.2rem; align-items: flex-end;">
+            <div>
+                <span style="color: #7ee787; font-weight: 700; font-size: 1rem;">Wind Availability</span><br>
+                <span style="font-size: 2rem; color: {wind_color}; font-weight: 800; letter-spacing: 0.01em;">{wind_label}</span>
+                <span style="color: #e0e0e0; font-size: 1rem; font-weight: 400;"> ({wind_speed:.1f} km/h)</span>
+            </div>
+            <div>
+                <span style="color: #ffe066; font-weight: 700; font-size: 1rem;">Solar Availability</span><br>
+                <span style="font-size: 2rem; color: {solar_color}; font-weight: 800; letter-spacing: 0.01em;">{solar_label}</span>
+                <span style="color: #e0e0e0; font-size: 1rem; font-weight: 400;"> ({solar_index:.1f}%)</span>
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
