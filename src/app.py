@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from supabase_client import get_supabase
 from data.loaders import fetch_demand_range, fetch_carbon_range, fetch_weather_range, fetch_date_bounds
 from components.sidebar import render_sidebar
-from components.charts import demand_chart, carbon_chart, weather_charts, summary_kpis, multi_series_chart, uk_carbon_map, explanatory_summary, uk_import_dependency
+from components.charts import demand_chart, carbon_chart, weather_charts, summary_kpis, multi_series_chart, uk_carbon_map, explanatory_summary, uk_import_dependency, carbon_heatmap
 
 load_dotenv()
 
@@ -113,6 +113,10 @@ if st.session_state.active_tab == 0:  # Summary
 elif st.session_state.active_tab == 1:  # Demand & Carbon
     st.subheader("UK Carbon Intensity Map")
     uk_carbon_map(carbon_df, demand_df)
+    
+    st.divider()
+    st.subheader("Carbon Intensity Patterns")
+    carbon_heatmap(carbon_df)
     
     st.divider()
     st.subheader("UK Import Dependency")

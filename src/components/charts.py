@@ -147,6 +147,136 @@ def _get_carbon_rating(intensity: float) -> str:
         return "Very High"
 
 
+def carbon_heatmap(carbon_df: pd.DataFrame):
+    """Create an interactive heatmap showing carbon intensity by hour and day of week"""
+    
+    if carbon_df.empty:
+        st.info("No carbon data available for the selected date range.")
+        return
+    
+    # Ensure datetime column exists
+    if "datetime" not in carbon_df.columns:
+        st.warning("No datetime column found in carbon data.")
+        return
+    
+    # Parse datetime and extract hour and weekday
+    df = carbon_df.copy()
+    df["datetime"] = pd.to_datetime(df["datetime"])
+    
+    # Check if we have more than 7 days of data
+    date_range = (df["datetime"].max() - df["datetime"].min()).days
+    if date_range < 7:
+        st.info("📊 Heatmap requires more than 7 days of data to show meaningful patterns. Please expand your date range.")
+        return
+    
+    df["hour"] = df["datetime"].dt.hour
+    df["weekday"] = df["datetime"].dt.dayofweek  # 0=Monday, 6=Sunday
+    df["weekday_name"] = df["datetime"].dt.day_name()
+    
+    # Group by weekday and hour, calculate mean carbon intensity
+    heatmap_data = df.groupby(["weekday", "hour"])["forecast"].mean().reset_index()
+    heatmap_data.columns = ["weekday", "hour", "intensity"]
+    
+    # Pivot to 7x24 matrix
+    pivot_df = heatmap_data.pivot(index="weekday", columns="hour", values="intensity")
+    
+    # Ensure all hours and weekdays are present
+    pivot_df = pivot_df.reindex(index=range(7), columns=range(24))
+    
+    # Day names for Y-axis
+    day_names = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+    
+    # Create custom colorscale matching existing carbon colors
+    # Very Low (0-100): Green, Low (100-150): Light Green, Moderate (150-200): Yellow, High (200-250): Orange, Very High (250+): Red
+    carbon_colorscale = [
+        [0.0, "#22c55e"],    # Very Low - Green
+        [0.3, "#84cc16"],    # Low - Light Green
+        [0.5, "#eab308"],    # Moderate - Yellow
+        [0.7, "#f97316"],    # Orange - High
+        [1.0, "#ef4444"],    # Very High - Red
+    ]
+    
+    # Prepare hover text
+    hover_text = []
+    for weekday_idx in range(7):
+        row_text = []
+        for hour in range(24):
+            val = pivot_df.loc[weekday_idx, hour] if pd.notna(pivot_df.loc[weekday_idx, hour]) else 0
+            row_text.append(
+                f"<b>{day_names[weekday_idx]}</b><br>"
+                f"Hour: {hour:02d}:00<br>"
+                f"Intensity: {val:.0f} gCO₂/kWh<br>"
+                f"Rating: {_get_carbon_rating(val)}"
+            )
+        hover_text.append(row_text)
+    
+    fig = go.Figure(data=go.Heatmap(
+        z=pivot_df.values,
+        x=[f"{h:02d}:00" for h in range(24)],
+        y=day_names,
+        colorscale=carbon_colorscale,
+        hoverinfo="text",
+        text=hover_text,
+        colorbar=dict(
+            title=dict(text="gCO₂/kWh", side="right"),
+            tickvals=[50, 100, 150, 200, 250, 300],
+            ticktext=["50", "100", "150", "200", "250", "300+"],
+            len=0.9,
+        ),
+        zmin=0,
+        zmax=300,
+    ))
+    
+    fig.update_layout(
+        title=dict(
+            text="Carbon Intensity by Hour & Day of Week",
+            x=0.5,
+            font=dict(size=16)
+        ),
+        xaxis=dict(
+            title="Hour of Day",
+            tickmode="array",
+            tickvals=[f"{h:02d}:00" for h in range(0, 24, 3)],
+            ticktext=["00:00", "03:00", "06:00", "09:00", "12:00", "15:00", "18:00", "21:00"],
+            side="bottom",
+            gridcolor="#333333",
+        ),
+        yaxis=dict(
+            title="Day of Week",
+            autorange="reversed",  # Monday at top
+            gridcolor="#333333",
+        ),
+        height=400,
+        margin=dict(l=100, r=20, t=50, b=60),
+        paper_bgcolor="#0e1117",
+        plot_bgcolor="#0e1117",
+        font=dict(color="#fafafa"),
+    )
+    
+    st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+    
+    # Add summary insights
+    if not heatmap_data.empty:
+        peak_row = heatmap_data.loc[heatmap_data["intensity"].idxmax()]
+        low_row = heatmap_data.loc[heatmap_data["intensity"].idxmin()]
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            st.markdown(f"""
+            <div style="background: #1a1a2e; padding: 0.75rem 1rem; border-radius: 8px; border-left: 3px solid #ef4444;">
+                <strong style="color: #ef4444;">⚠️ Peak Carbon</strong><br>
+                <span style="color: #e0e0e0;">{day_names[int(peak_row['weekday'])]} at {int(peak_row['hour']):02d}:00 — {peak_row['intensity']:.0f} gCO₂/kWh</span>
+            </div>
+            """, unsafe_allow_html=True)
+        with col2:
+            st.markdown(f"""
+            <div style="background: #1a1a2e; padding: 0.75rem 1rem; border-radius: 8px; border-left: 3px solid #22c55e;">
+                <strong style="color: #22c55e;">🌱 Lowest Carbon</strong><br>
+                <span style="color: #e0e0e0;">{day_names[int(low_row['weekday'])]} at {int(low_row['hour']):02d}:00 — {low_row['intensity']:.0f} gCO₂/kWh</span>
+            </div>
+            """, unsafe_allow_html=True)
+
+
 def uk_carbon_map(carbon_df: pd.DataFrame, demand_df: pd.DataFrame):
     """Create a UK map showing carbon intensity by region with demand summary"""
     
