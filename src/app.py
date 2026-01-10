@@ -5,8 +5,33 @@ from supabase_client import get_supabase
 from data.loaders import fetch_demand_range, fetch_carbon_range, fetch_weather_range, fetch_date_bounds
 from components.sidebar import render_sidebar
 from components.charts import demand_chart, carbon_chart, weather_charts, summary_kpis, multi_series_chart, uk_carbon_map, explanatory_summary, uk_import_dependency, carbon_heatmap, generation_mix_stacked_bar
+from data_update import update_and_upload_carbon_data, update_and_upload_weather_data, update_and_upload_demand_data
 
 load_dotenv()
+
+# Initialize session state for data loading
+if "data_loaded" not in st.session_state:
+    st.session_state.data_loaded = False
+
+# Data loading on app startup (only once)
+if not st.session_state.data_loaded:
+    with st.spinner("Loading latest energy data..."):
+        try:
+            update_and_upload_carbon_data()
+        except Exception as e:
+            st.warning(f"Could not update carbon data: {str(e)}")
+        
+        try:
+            update_and_upload_weather_data()
+        except Exception as e:
+            st.warning(f"Could not update weather data: {str(e)}")
+        
+        try:
+            update_and_upload_demand_data()
+        except Exception as e:
+            st.warning(f"Could not update demand data: {str(e)}")
+    
+    st.session_state.data_loaded = True
 
 # Initialize session state
 if "focus_metric" not in st.session_state:
