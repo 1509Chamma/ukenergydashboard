@@ -21,36 +21,60 @@ def _fetch_all_pages(_supabase, table: str, query_builder) -> list:
     
     return all_data
 
+def _get_table_min_max(_supabase, table: str) -> tuple[date | None, date | None]:
+    """Return (min_date, max_date) for table datetime column, or (None, None) if unavailable."""
+    try:
+        min_resp = (
+            _supabase.table(table)
+            .select("datetime")
+            .order("datetime", desc=False)
+            .limit(1)
+            .execute()
+        )
+        max_resp = (
+            _supabase.table(table)
+            .select("datetime")
+            .order("datetime", desc=True)
+            .limit(1)
+            .execute()
+        )
+        if not (min_resp.data and max_resp.data):
+            return None, None
+        # Handle TIMESTAMP/TIMESTAMPTZ with or without trailing Z
+        def _to_date(val: str) -> date:
+            s = val if isinstance(val, str) else str(val)
+            if s.endswith("Z"):
+                s = s.replace("Z", "+00:00")
+            return datetime.fromisoformat(s).date()
+        return _to_date(min_resp.data[0]["datetime"]), _to_date(max_resp.data[0]["datetime"])
+    except Exception:
+        return None, None
+
 @st.cache_data(ttl=3600)
 def fetch_date_bounds(_supabase) -> tuple[date, date]:
-    """Fetch min and max dates available in the demand table"""
-    if not _supabase:
-        today = datetime.utcnow().date()
-        return today, today
-    
-    # Get min date
-    min_resp = (
-        _supabase.table("historic_demand")
-        .select("datetime")
-        .order("datetime", desc=False)
-        .limit(1)
-        .execute()
-    )
-    # Get max date
-    max_resp = (
-        _supabase.table("historic_demand")
-        .select("datetime")
-        .order("datetime", desc=True)
-        .limit(1)
-        .execute()
-    )
-    
+    """Return the overlapping date range where demand, carbon, and weather all have data."""
     today = datetime.utcnow().date()
-    if min_resp.data and max_resp.data:
-        min_date = datetime.fromisoformat(min_resp.data[0]["datetime"].replace("Z", "+00:00")).date()
-        max_date = datetime.fromisoformat(max_resp.data[0]["datetime"].replace("Z", "+00:00")).date()
-        return min_date, max_date
-    return today, today
+    if not _supabase:
+        return today, today
+
+    d_min, d_max = _get_table_min_max(_supabase, "historic_demand")
+    c_min, c_max = _get_table_min_max(_supabase, "carbon_intensity")
+    w_min, w_max = _get_table_min_max(_supabase, "weather")
+
+    mins = [m for m in [d_min, c_min, w_min] if m is not None]
+    maxs = [m for m in [d_max, c_max, w_max] if m is not None]
+
+    if not mins or not maxs:
+        return today, today
+
+    # Intersection: start = max(mins), end = min(maxs)
+    start = max(mins)
+    end = min(maxs)
+
+    # If intersection is empty or inverted, fallback to today
+    if start > end:
+        return today, today
+    return start, end
 
 @st.cache_data(ttl=300)
 def fetch_demand_range(_supabase, start: date, end: date) -> pd.DataFrame:
