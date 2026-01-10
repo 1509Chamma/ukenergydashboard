@@ -83,10 +83,10 @@ def explanatory_summary(demand_df: pd.DataFrame, carbon_df: pd.DataFrame, weathe
     # Focus-specific insight
     if focus_metric:
         focus_insight = {
-            "demand": "📊 Currently focusing on <strong>demand patterns</strong> — click KPI cards to change focus",
-            "carbon": "🌱 Currently focusing on <strong>carbon intensity</strong> — useful for identifying low-emission periods",
-            "temperature": "🌡️ Currently focusing on <strong>temperature</strong> — correlates with heating/cooling demand",
-            "wind": "💨 Currently focusing on <strong>wind speed</strong> — key driver for renewable generation"
+            "demand": "Currently focusing on <strong>demand patterns</strong> — click KPI cards to change focus",
+            "carbon": "Currently focusing on <strong>carbon intensity</strong> — useful for identifying low-emission periods",
+            "temperature": "Currently focusing on <strong>temperature</strong> — correlates with heating/cooling demand",
+            "wind": "Currently focusing on <strong>wind speed</strong> — key driver for renewable generation"
         }
         if focus_metric in focus_insight:
             insights.append(focus_insight[focus_metric])
@@ -110,7 +110,7 @@ def explanatory_summary(demand_df: pd.DataFrame, carbon_df: pd.DataFrame, weathe
                     border-left: 3px solid #ff4b4b;
                     margin: 1rem 0;">
             <h4 style="margin: 0 0 0.75rem 0; color: #fafafa; font-size: 1rem; font-weight: 600;">
-                📈 Key Insights
+                Key Insights
             </h4>
             <ul style="margin: 0; padding-left: 1.25rem; color: #e0e0e0; line-height: 1.6;">
                 {bullets_html}
@@ -166,7 +166,7 @@ def carbon_heatmap(carbon_df: pd.DataFrame):
     # Check if we have more than 7 days of data
     date_range = (df["datetime"].max() - df["datetime"].min()).days
     if date_range < 7:
-        st.info("📊 Heatmap requires more than 7 days of data to show meaningful patterns. Please expand your date range.")
+        st.info("Heatmap requires more than 7 days of data to show meaningful patterns. Please expand your date range.")
         return
     
     df["hour"] = df["datetime"].dt.hour
@@ -1033,15 +1033,11 @@ def weather_charts(df: pd.DataFrame, selected_regions: list, start_date: date, e
     wdf = df.copy()
     wdf["datetime"] = pd.to_datetime(wdf["datetime"])
     
-    # ═══════════════════════════════════════════════════════════════════
-    # WEATHER KPI CARDS (Matching Summary Page Style)
-    # ═══════════════════════════════════════════════════════════════════
-    
     col1, col2, col3, col4 = st.columns(4, gap="medium")
     
     # Temperature KPIs
     with col1:
-        st.markdown("**🌡️ Temperature**")
+        st.markdown("**Temperature**")
         if "temperature" in wdf.columns:
             temp_agg = wdf.groupby("datetime")["temperature"].mean().reset_index()
             avg_temp = temp_agg["temperature"].mean()
@@ -1072,7 +1068,7 @@ def weather_charts(df: pd.DataFrame, selected_regions: list, start_date: date, e
     
     # Wind KPIs
     with col2:
-        st.markdown("**💨 Wind Speed**")
+        st.markdown("**Wind Speed**")
         if "wind_speed" in wdf.columns:
             wind_agg = wdf.groupby("datetime")["wind_speed"].mean().reset_index()
             avg_wind = wind_agg["wind_speed"].mean()
@@ -1103,7 +1099,7 @@ def weather_charts(df: pd.DataFrame, selected_regions: list, start_date: date, e
     
     # Precipitation KPIs
     with col3:
-        st.markdown("**🌧️ Precipitation**")
+        st.markdown("**Precipitation**")
         if "precipitation" in wdf.columns:
             precip_agg = wdf.groupby("datetime")["precipitation"].sum().reset_index()
             total_precip = precip_agg["precipitation"].sum()
@@ -1125,7 +1121,7 @@ def weather_charts(df: pd.DataFrame, selected_regions: list, start_date: date, e
     
     # Cloud Cover KPIs
     with col4:
-        st.markdown("**☁️ Cloud Cover**")
+        st.markdown("**Cloud Cover**")
         if "cloud_cover" in wdf.columns:
             cloud_agg = wdf.groupby("datetime")["cloud_cover"].mean().reset_index()
             avg_cloud = cloud_agg["cloud_cover"].mean()
@@ -1154,4 +1150,122 @@ def weather_charts(df: pd.DataFrame, selected_regions: list, start_date: date, e
             st.metric("Average", "—")
             st.metric("Maximum", "—")
             st.metric("Minimum", "—")
-
+    
+    st.divider()
+    
+    # Check if we have more than 7 days of data
+    date_range = (wdf["datetime"].max() - wdf["datetime"].min()).days
+    
+    if date_range >= 7:
+        st.subheader("Weather Patterns Heatmap")
+        
+        # Metric selector
+        metric_options = {
+            "Temperature (°C)": ("temperature", "°C", [[0.0, "#3b82f6"], [0.5, "#fbbf24"], [1.0, "#ef4444"]]),
+            "Wind Speed (m/s)": ("wind_speed", "m/s", [[0.0, "#e0f2fe"], [0.5, "#38bdf8"], [1.0, "#0369a1"]]),
+            "Cloud Cover (%)": ("cloud_cover", "%", [[0.0, "#fef3c7"], [0.5, "#9ca3af"], [1.0, "#374151"]]),
+            "Precipitation (mm)": ("precipitation", "mm", [[0.0, "#f0fdfa"], [0.5, "#14b8a6"], [1.0, "#0f766e"]]),
+        }
+        
+        selected_metric = st.selectbox(
+            "Select weather metric",
+            options=list(metric_options.keys()),
+            key="weather_heatmap_metric"
+        )
+        
+        col_name, unit, colorscale = metric_options[selected_metric]
+        
+        if col_name in wdf.columns:
+            # Extract hour and weekday
+            heatmap_df = wdf.copy()
+            heatmap_df["hour"] = heatmap_df["datetime"].dt.hour
+            heatmap_df["weekday"] = heatmap_df["datetime"].dt.dayofweek  # 0=Monday
+            
+            # Group by weekday and hour, calculate mean
+            heatmap_data = heatmap_df.groupby(["weekday", "hour"])[col_name].mean().reset_index()
+            heatmap_data.columns = ["weekday", "hour", "value"]
+            
+            # Pivot to 7x24 matrix
+            pivot_df = heatmap_data.pivot(index="weekday", columns="hour", values="value")
+            pivot_df = pivot_df.reindex(index=range(7), columns=range(24))
+            
+            day_names = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+            
+            # Prepare hover text
+            hover_text = []
+            for weekday_idx in range(7):
+                row_text = []
+                for hour in range(24):
+                    val = pivot_df.loc[weekday_idx, hour] if pd.notna(pivot_df.loc[weekday_idx, hour]) else 0
+                    row_text.append(
+                        f"<b>{day_names[weekday_idx]}</b><br>"
+                        f"Hour: {hour:02d}:00<br>"
+                        f"{selected_metric.split(' ')[0]}: {val:.1f} {unit}"
+                    )
+                hover_text.append(row_text)
+            
+            fig = go.Figure(data=go.Heatmap(
+                z=pivot_df.values,
+                x=[f"{h:02d}:00" for h in range(24)],
+                y=day_names,
+                colorscale=colorscale,
+                hoverinfo="text",
+                text=hover_text,
+                colorbar=dict(
+                    title=dict(text=unit, side="right"),
+                    len=0.9,
+                ),
+            ))
+            
+            fig.update_layout(
+                title=dict(
+                    text=f"{selected_metric} by Hour & Day of Week",
+                    x=0.5,
+                    font=dict(size=16)
+                ),
+                xaxis=dict(
+                    title="Hour of Day",
+                    tickmode="array",
+                    tickvals=[f"{h:02d}:00" for h in range(0, 24, 3)],
+                    ticktext=["00:00", "03:00", "06:00", "09:00", "12:00", "15:00", "18:00", "21:00"],
+                    side="bottom",
+                    gridcolor="#333333",
+                ),
+                yaxis=dict(
+                    title="Day of Week",
+                    autorange="reversed",
+                    gridcolor="#333333",
+                ),
+                height=400,
+                margin=dict(l=100, r=20, t=50, b=60),
+                paper_bgcolor="#0e1117",
+                plot_bgcolor="#0e1117",
+                font=dict(color="#fafafa"),
+            )
+            
+            st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+            
+            # Show peak/low summary
+            if not heatmap_data.empty:
+                peak_row = heatmap_data.loc[heatmap_data["value"].idxmax()]
+                low_row = heatmap_data.loc[heatmap_data["value"].idxmin()]
+                
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.markdown(f"""
+                    <div style="background: #1a1a2e; padding: 0.75rem 1rem; border-radius: 8px; border-left: 3px solid #ef4444;">
+                        <strong style="color: #fafafa;">Peak</strong><br>
+                        <span style="color: #e0e0e0;">{day_names[int(peak_row['weekday'])]} at {int(peak_row['hour']):02d}:00 — {peak_row['value']:.1f} {unit}</span>
+                    </div>
+                    """, unsafe_allow_html=True)
+                with col2:
+                    st.markdown(f"""
+                    <div style="background: #1a1a2e; padding: 0.75rem 1rem; border-radius: 8px; border-left: 3px solid #22c55e;">
+                        <strong style="color: #fafafa;">Lowest</strong><br>
+                        <span style="color: #e0e0e0;">{day_names[int(low_row['weekday'])]} at {int(low_row['hour']):02d}:00 — {low_row['value']:.1f} {unit}</span>
+                    </div>
+                    """, unsafe_allow_html=True)
+        else:
+            st.warning(f"No {col_name} data available.")
+    else:
+        st.info("Weather heatmap requires more than 7 days of data. Please expand your date range to see patterns by hour and day of week.")
