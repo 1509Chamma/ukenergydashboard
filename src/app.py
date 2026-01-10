@@ -1,116 +1,68 @@
 import streamlit as st
-import pandas as pd
-from datetime import datetime, timedelta, date
+from datetime import datetime, timezone
 from dotenv import load_dotenv
 from supabase_client import get_supabase
-from charts import demand_chart, carbon_chart
+from data.loaders import fetch_demand_range, fetch_carbon_range, fetch_weather_range, fetch_date_bounds
+from components.sidebar import render_sidebar
+from components.charts import demand_chart, carbon_chart, weather_charts, summary_kpis, multi_series_chart
 
 load_dotenv()
+
+# Initialize session state
+if "focus_metric" not in st.session_state:
+    st.session_state.focus_metric = None
+if "active_timerange" not in st.session_state:
+    st.session_state.active_timerange = None
 supabase = get_supabase()
 
 st.set_page_config(page_title="Energy Dashboard", layout="wide")
 st.title("Energy Dashboard")
-st.caption(f"Last refreshed: {datetime.utcnow():%Y-%m-%d %H:%M UTC}")
+st.caption(f"Last refreshed: {datetime.now(timezone.utc):%Y-%m-%d %H:%M UTC}")
 
-with st.sidebar:
-    st.subheader("Controls")
-    selected_date: date = st.date_input("Date", datetime.utcnow().date())
-    region = st.selectbox("Region", ["North Scotland", "South Scotland", "North West England",
-                                     "North East England", "South Yorkshire", "North Wales & Merseyside",
-                                     "South Wales", "West Midlands", "East Midlands", "East England",
-                                     "South West England", "South England", "London", "South East England"])
-    st.divider()
-    st.text(f"Supabase: {'OK' if supabase else 'Missing'}")
+# Fetch available date bounds
+min_date, max_date = fetch_date_bounds(supabase)
 
-@st.cache_data(ttl=300)
-def fetch_demand_for_date(day: date) -> pd.DataFrame:
-    if not supabase:
-        return pd.DataFrame()
-    start_dt = datetime.combine(day, datetime.min.time())
-    end_dt = start_dt + timedelta(days=1)
-    resp = (
-        supabase.table("historic_demand")
-        .select("*")
-        .gte("datetime", start_dt.isoformat())
-        .lt("datetime", end_dt.isoformat())
-        .order("datetime", desc=False)
-        .limit(2000)
-        .execute()
-    )
-    return pd.DataFrame(resp.data or [])
+# Render sidebar and get parameters
+start_date, end_date, selected_regions = render_sidebar(supabase, min_date, max_date)
 
-@st.cache_data(ttl=300)
-def fetch_carbon_for_date(day: date, region_name: str) -> pd.DataFrame:
-    if not supabase:
-        return pd.DataFrame()
-    start_dt = datetime.combine(day, datetime.min.time())
-    end_dt = start_dt + timedelta(days=1)
-    resp = (
-        supabase.table("carbon_intensity")
-        .select("*")
-        .eq("region_name", region_name)
-        .gte("datetime", start_dt.isoformat())
-        .lt("datetime", end_dt.isoformat())
-        .order("datetime", desc=False)
-        .limit(2000)
-        .execute()
-    )
-    return pd.DataFrame(resp.data or [])
+# Fetch data only if regions are selected
+if selected_regions:
+    # Convert regions to tuple for proper caching
+    regions_tuple = tuple(selected_regions)
+    demand_df = fetch_demand_range(supabase, start_date, end_date)
+    carbon_df = fetch_carbon_range(supabase, start_date, end_date, regions_tuple)
+    weather_df = fetch_weather_range(supabase, start_date, end_date, regions_tuple)
+else:
+    import pandas as pd
+    demand_df = pd.DataFrame()
+    carbon_df = pd.DataFrame()
+    weather_df = pd.DataFrame()
+    st.warning("Please select at least one region to view data.")
 
-@st.cache_data(ttl=300)
-def fetch_weather_for_date(day: date, region_name: str) -> pd.DataFrame:
-    if not supabase:
-        return pd.DataFrame()
-    start_dt = datetime.combine(day, datetime.min.time())
-    end_dt = start_dt + timedelta(days=1)
-    resp = (
-        supabase.table("weather")
-        .select("*")
-        .eq("region_name", region_name)
-        .gte("datetime", start_dt.isoformat())
-        .lt("datetime", end_dt.isoformat())
-        .order("datetime", desc=False)
-        .limit(2500)
-        .execute()
-    )
-    return pd.DataFrame(resp.data or [])
-
-demand_df = fetch_demand_for_date(selected_date)
-carbon_df = fetch_carbon_for_date(selected_date, region)
-weather_df = fetch_weather_for_date(selected_date, region)
-
+# Tabs
 tab1, tab2, tab3 = st.tabs(["Summary", "Demand & Carbon", "Weather"])
 
 with tab1:
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        if not demand_df.empty:
-            latest = demand_df.sort_values("datetime").iloc[-1]
-            st.metric("Demand (MW)", f"{latest.get('nd', 0):,.0f}")
-        else:
-            st.metric("Demand (MW)", "—")
-    with col2:
-        if not carbon_df.empty:
-            latest_c = carbon_df.sort_values("datetime").iloc[-1]
-            st.metric("Carbon Intensity", f"{latest_c.get('forecast', 0):,.0f} gCO₂/kWh")
-        else:
-            st.metric("Carbon Intensity", "—")
-    with col3:
-        if not weather_df.empty:
-            latest_w = weather_df.sort_values("datetime").iloc[-1]
-            st.metric("Temp (°C)", f"{latest_w.get('temperature', 0):.1f}")
-        else:
-            st.metric("Temp (°C)", "—")
+    summary_kpis(demand_df, carbon_df, weather_df)
+    
+    # Multi-series time chart with range brushing
+    st.divider()
+    multi_series_chart(demand_df, carbon_df, weather_df, focus_metric=st.session_state.focus_metric)
+    
+    # Show current focus
+    if st.session_state.focus_metric:
+        st.info(f"Focused metric: **{st.session_state.focus_metric.title()}** - This metric is emphasized in charts below. Click again to clear.")
 
 with tab2:
-    demand_chart(demand_df)
-    carbon_chart(carbon_df)
+    focus = st.session_state.focus_metric
+    
+    # Show demand chart (emphasized if focused)
+    st.subheader("National Demand" + (" (Focused)" if focus == "demand" else ""))
+    demand_chart(demand_df, start_date, end_date, emphasized=(focus == "demand"))
+    
+    # Show carbon chart (emphasized if focused)
+    st.subheader("Carbon Intensity by Region" + (" (Focused)" if focus == "carbon" else ""))
+    carbon_chart(carbon_df, selected_regions, start_date, end_date, emphasized=(focus == "carbon"))
 
 with tab3:
-    if weather_df.empty:
-        st.info("No weather data for this date/region.")
-    else:
-        wdf = weather_df.copy()
-        wdf["datetime"] = pd.to_datetime(wdf["datetime"])
-        st.line_chart(wdf.set_index("datetime")[["temperature", "wind_speed", "humidity"]])
-        st.line_chart(wdf.set_index("datetime")[["cloud_cover", "precipitation"]])
+    weather_charts(weather_df, selected_regions, start_date, end_date, focus_metric=st.session_state.focus_metric)
