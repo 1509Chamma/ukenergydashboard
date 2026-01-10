@@ -130,10 +130,16 @@ def uk_carbon_map(carbon_df: pd.DataFrame, demand_df: pd.DataFrame):
             text="Carbon Intensity by Region (g CO2/kWh)",
             x=0.5,
             font=dict(size=16)
-        )
+        ),
+        dragmode=False,  # Disable dragging/panning
     )
     
-    st.plotly_chart(fig, use_container_width=True)
+    # Disable scroll zoom and other interactions
+    st.plotly_chart(fig, use_container_width=True, config={
+        'scrollZoom': False,
+        'doubleClick': False,
+        'displayModeBar': False
+    })
     
     # Add legend/key below map
     st.markdown("**Intensity Scale:**")
