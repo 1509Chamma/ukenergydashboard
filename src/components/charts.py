@@ -1033,62 +1033,125 @@ def weather_charts(df: pd.DataFrame, selected_regions: list, start_date: date, e
     wdf = df.copy()
     wdf["datetime"] = pd.to_datetime(wdf["datetime"])
     
-    # Create datetime bounds for chart
-    x_min = datetime.combine(start_date, datetime.min.time())
-    x_max = datetime.combine(end_date + timedelta(days=1), datetime.min.time())
-    x_scale = alt.Scale(domain=[x_min.isoformat(), x_max.isoformat()])
+    # ═══════════════════════════════════════════════════════════════════
+    # WEATHER KPI CARDS (Matching Summary Page Style)
+    # ═══════════════════════════════════════════════════════════════════
     
-    # Determine emphasis styling
-    temp_emphasized = focus_metric == "temperature"
-    wind_emphasized = focus_metric == "wind"
-    temp_stroke = 4 if temp_emphasized else (1 if wind_emphasized else 2)
-    wind_stroke = 4 if wind_emphasized else (1 if temp_emphasized else 2)
-    temp_opacity = 1.0 if temp_emphasized or not focus_metric else 0.4
-    wind_opacity = 1.0 if wind_emphasized or not focus_metric else 0.4
-    chart_height = 400 if (temp_emphasized or wind_emphasized) else 300
+    col1, col2, col3, col4 = st.columns(4, gap="medium")
     
-    st.subheader("Temperature & Wind" + (" (Temperature Focused)" if temp_emphasized else " (Wind Focused)" if wind_emphasized else ""))
-    if len(selected_regions) > 1:
-        # Aggregate across regions
-        agg_df = wdf.groupby("datetime").agg({"temperature": "mean", "wind_speed": "mean"}).reset_index()
-        temp_chart = alt.Chart(agg_df).mark_line(color="red", strokeWidth=temp_stroke, opacity=temp_opacity).encode(
-            x=alt.X("datetime:T", title="Time", scale=x_scale),
-            y=alt.Y("temperature:Q", title="Temperature (C)"),
-            tooltip=["datetime:T", "temperature:Q"]
-        )
-        wind_chart = alt.Chart(agg_df).mark_line(color="blue", strokeWidth=wind_stroke, opacity=wind_opacity).encode(
-            x=alt.X("datetime:T", title="Time", scale=x_scale),
-            y=alt.Y("wind_speed:Q", title="Wind Speed (m/s)"),
-            tooltip=["datetime:T", "wind_speed:Q"]
-        )
-        combined = alt.layer(temp_chart, wind_chart).resolve_scale(y="independent").interactive(bind_x=True, bind_y=False).properties(height=chart_height)
-        st.altair_chart(combined, width="stretch")
-    else:
-        base = alt.Chart(wdf).encode(x=alt.X("datetime:T", title="Time", scale=x_scale))
-        temp_line = base.mark_line(color="red", strokeWidth=temp_stroke, opacity=temp_opacity).encode(y=alt.Y("temperature:Q", title="Temperature (C)"))
-        wind_line = base.mark_line(color="blue", strokeWidth=wind_stroke, opacity=wind_opacity).encode(y=alt.Y("wind_speed:Q", title="Wind Speed (m/s)"))
-        combined = alt.layer(temp_line, wind_line).resolve_scale(y="independent").interactive(bind_x=True, bind_y=False).properties(height=chart_height)
-        st.altair_chart(combined, width="stretch")
+    # Temperature KPIs
+    with col1:
+        st.markdown("**🌡️ Temperature**")
+        if "temperature" in wdf.columns:
+            temp_agg = wdf.groupby("datetime")["temperature"].mean().reset_index()
+            avg_temp = temp_agg["temperature"].mean()
+            max_temp = temp_agg["temperature"].max()
+            min_temp = temp_agg["temperature"].min()
+            
+            # Calculate trend
+            mid = len(temp_agg) // 2
+            if mid > 0:
+                first_half = temp_agg["temperature"].iloc[:mid].mean()
+                second_half = temp_agg["temperature"].iloc[mid:].mean()
+                delta = second_half - first_half
+                st.metric("Average", f"{avg_temp:.1f}°C", f"{delta:+.1f}°C", help=f"Change from {first_half:.1f}°C → {second_half:.1f}°C")
+            else:
+                st.metric("Average", f"{avg_temp:.1f}°C")
+            
+            st.metric("High", f"{max_temp:.1f}°C")
+            st.metric("Low", f"{min_temp:.1f}°C")
+            
+            # Sparkline
+            if len(temp_agg) > 1:
+                spark = _create_sparkline(temp_agg, "datetime", "temperature", "#ef4444")
+                st.altair_chart(spark, use_container_width=True)
+        else:
+            st.metric("Average", "—")
+            st.metric("High", "—")
+            st.metric("Low", "—")
     
-    st.subheader("Cloud & Precipitation")
-    if len(selected_regions) > 1:
-        agg_df = wdf.groupby("datetime").agg({"cloud_cover": "mean", "precipitation": "mean"}).reset_index()
-        cloud_chart = alt.Chart(agg_df).mark_line(color="gray").encode(
-            x=alt.X("datetime:T", title="Time", scale=x_scale),
-            y=alt.Y("cloud_cover:Q", title="Cloud Cover (%)"),
-            tooltip=["datetime:T", "cloud_cover:Q"]
-        )
-        precip_chart = alt.Chart(agg_df).mark_line(color="teal").encode(
-            x=alt.X("datetime:T", title="Time", scale=x_scale),
-            y=alt.Y("precipitation:Q", title="Precipitation (mm)"),
-            tooltip=["datetime:T", "precipitation:Q"]
-        )
-        combined = alt.layer(cloud_chart, precip_chart).resolve_scale(y="independent").interactive(bind_x=True, bind_y=False).properties(height=300)
-        st.altair_chart(combined, width="stretch")
-    else:
-        base = alt.Chart(wdf).encode(x=alt.X("datetime:T", title="Time", scale=x_scale))
-        cloud_line = base.mark_line(color="gray").encode(y=alt.Y("cloud_cover:Q", title="Cloud Cover (%)"))
-        precip_line = base.mark_line(color="teal").encode(y=alt.Y("precipitation:Q", title="Precipitation (mm)"))
-        combined = alt.layer(cloud_line, precip_line).resolve_scale(y="independent").interactive(bind_x=True, bind_y=False).properties(height=300)
-        st.altair_chart(combined, width="stretch")
+    # Wind KPIs
+    with col2:
+        st.markdown("**💨 Wind Speed**")
+        if "wind_speed" in wdf.columns:
+            wind_agg = wdf.groupby("datetime")["wind_speed"].mean().reset_index()
+            avg_wind = wind_agg["wind_speed"].mean()
+            peak_wind = wind_agg["wind_speed"].max()
+            min_wind = wind_agg["wind_speed"].min()
+            
+            # Calculate trend
+            mid = len(wind_agg) // 2
+            if mid > 0:
+                first_half = wind_agg["wind_speed"].iloc[:mid].mean()
+                second_half = wind_agg["wind_speed"].iloc[mid:].mean()
+                delta = ((second_half - first_half) / first_half * 100) if first_half else 0
+                st.metric("Average", f"{avg_wind:.1f} m/s", f"{delta:+.1f}%", help=f"Trend: {first_half:.1f} → {second_half:.1f} m/s")
+            else:
+                st.metric("Average", f"{avg_wind:.1f} m/s")
+            
+            st.metric("Peak", f"{peak_wind:.1f} m/s")
+            st.metric("Minimum", f"{min_wind:.1f} m/s")
+            
+            # Sparkline
+            if len(wind_agg) > 1:
+                spark = _create_sparkline(wind_agg, "datetime", "wind_speed", "#3b82f6")
+                st.altair_chart(spark, use_container_width=True)
+        else:
+            st.metric("Average", "—")
+            st.metric("Peak", "—")
+            st.metric("Minimum", "—")
+    
+    # Precipitation KPIs
+    with col3:
+        st.markdown("**🌧️ Precipitation**")
+        if "precipitation" in wdf.columns:
+            precip_agg = wdf.groupby("datetime")["precipitation"].sum().reset_index()
+            total_precip = precip_agg["precipitation"].sum()
+            max_precip = precip_agg["precipitation"].max()
+            avg_precip = precip_agg["precipitation"].mean()
+            
+            st.metric("Total", f"{total_precip:.1f} mm")
+            st.metric("Peak Hour", f"{max_precip:.1f} mm")
+            st.metric("Avg/Period", f"{avg_precip:.2f} mm")
+            
+            # Sparkline
+            if len(precip_agg) > 1:
+                spark = _create_sparkline(precip_agg, "datetime", "precipitation", "#14b8a6")
+                st.altair_chart(spark, use_container_width=True)
+        else:
+            st.metric("Total", "—")
+            st.metric("Peak Hour", "—")
+            st.metric("Avg/Period", "—")
+    
+    # Cloud Cover KPIs
+    with col4:
+        st.markdown("**☁️ Cloud Cover**")
+        if "cloud_cover" in wdf.columns:
+            cloud_agg = wdf.groupby("datetime")["cloud_cover"].mean().reset_index()
+            avg_cloud = cloud_agg["cloud_cover"].mean()
+            max_cloud = cloud_agg["cloud_cover"].max()
+            min_cloud = cloud_agg["cloud_cover"].min()
+            
+            # Cloud description
+            if avg_cloud < 25:
+                cloud_desc = "Clear"
+            elif avg_cloud < 50:
+                cloud_desc = "Partly Cloudy"
+            elif avg_cloud < 75:
+                cloud_desc = "Mostly Cloudy"
+            else:
+                cloud_desc = "Overcast"
+            
+            st.metric("Average", f"{avg_cloud:.0f}%", help=f"Conditions: {cloud_desc}")
+            st.metric("Maximum", f"{max_cloud:.0f}%")
+            st.metric("Minimum", f"{min_cloud:.0f}%")
+            
+            # Sparkline
+            if len(cloud_agg) > 1:
+                spark = _create_sparkline(cloud_agg, "datetime", "cloud_cover", "#94a3b8")
+                st.altair_chart(spark, use_container_width=True)
+        else:
+            st.metric("Average", "—")
+            st.metric("Maximum", "—")
+            st.metric("Minimum", "—")
 
