@@ -280,6 +280,152 @@ def uk_carbon_map(carbon_df: pd.DataFrame, demand_df: pd.DataFrame):
             st.info("No demand data available.")
 
 
+# Interconnector metadata: name, country, color
+INTERCONNECTORS = {
+    "ifa_flow": {"name": "IFA", "country": "France", "color": "#0055A4"},
+    "ifa2_flow": {"name": "IFA2", "country": "France", "color": "#0066CC"},
+    "britned_flow": {"name": "BritNed", "country": "Netherlands", "color": "#FF6B00"},
+    "moyle_flow": {"name": "Moyle", "country": "N. Ireland", "color": "#169B62"},
+    "east_west_flow": {"name": "East-West", "country": "Ireland", "color": "#FF883E"},
+    "nemo_flow": {"name": "NEMO", "country": "Belgium", "color": "#FDDA24"},
+    "nsl_flow": {"name": "North Sea Link", "country": "Norway", "color": "#BA0C2F"},
+    "eleclink_flow": {"name": "ElecLink", "country": "France", "color": "#3366CC"},
+    "viking_flow": {"name": "Viking Link", "country": "Denmark", "color": "#C60C30"},
+    "greenlink_flow": {"name": "Greenlink", "country": "Ireland", "color": "#22B14C"},
+}
+
+
+def uk_import_dependency(demand_df: pd.DataFrame):
+    """Create visualization showing UK import/export dependency via interconnectors"""
+    
+    if demand_df.empty:
+        st.info("No interconnector data available for the selected date range.")
+        return
+    
+    # Find available interconnector columns
+    flow_cols = [col for col in demand_df.columns if col in INTERCONNECTORS]
+    
+    if not flow_cols:
+        st.warning("No interconnector flow data found in the dataset.")
+        return
+    
+    # Calculate totals for each interconnector
+    flow_summary = []
+    for col in flow_cols:
+        if col in demand_df.columns:
+            total_flow = demand_df[col].sum()
+            avg_flow = demand_df[col].mean()
+            max_import = demand_df[col].max()
+            max_export = demand_df[col].min()
+            
+            info = INTERCONNECTORS[col]
+            flow_summary.append({
+                "interconnector": info["name"],
+                "country": info["country"],
+                "color": info["color"],
+                "total_gwh": total_flow / 2000,  # Convert MW half-hours to GWh
+                "avg_mw": avg_flow,
+                "max_import_mw": max_import,
+                "max_export_mw": abs(max_export) if max_export < 0 else 0,
+                "net_position": "Import" if total_flow > 0 else "Export"
+            })
+    
+    flow_df = pd.DataFrame(flow_summary)
+    
+    if flow_df.empty:
+        st.warning("No interconnector flow data available.")
+        return
+    
+    # Calculate overall metrics
+    total_import = flow_df[flow_df["total_gwh"] > 0]["total_gwh"].sum()
+    total_export = abs(flow_df[flow_df["total_gwh"] < 0]["total_gwh"].sum())
+    net_flow = total_import - total_export
+    
+    # Get demand for dependency calculation
+    if "tsd" in demand_df.columns:
+        total_demand_gwh = demand_df["tsd"].sum() / 2000
+        dependency_pct = (net_flow / total_demand_gwh * 100) if total_demand_gwh > 0 else 0
+    else:
+        dependency_pct = 0
+    
+    # Summary KPIs
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("Net Import", f"{net_flow:,.1f} GWh", 
+                delta=f"{'Import' if net_flow > 0 else 'Export'}")
+    col2.metric("Total Imported", f"{total_import:,.1f} GWh")
+    col3.metric("Total Exported", f"{total_export:,.1f} GWh")
+    col4.metric("Import Dependency", f"{dependency_pct:.1f}%",
+                help="Net imports as percentage of total system demand")
+    
+    st.divider()
+    
+    # Create horizontal bar chart by country
+    col_left, col_right = st.columns([2, 1])
+    
+    with col_left:
+        # Aggregate by country for cleaner view
+        country_flow = flow_df.groupby("country").agg({
+            "total_gwh": "sum",
+            "avg_mw": "sum",
+            "color": "first"
+        }).reset_index()
+        country_flow = country_flow.sort_values("total_gwh", ascending=True)
+        
+        fig = go.Figure()
+        
+        for _, row in country_flow.iterrows():
+            fig.add_trace(go.Bar(
+                y=[row["country"]],
+                x=[row["total_gwh"]],
+                orientation="h",
+                marker_color=row["color"] if row["total_gwh"] > 0 else "#888888",
+                text=f"{row['total_gwh']:+.1f} GWh",
+                textposition="auto",
+                name=row["country"],
+                showlegend=False,
+                hovertemplate=f"<b>{row['country']}</b><br>" +
+                              f"Net Flow: {row['total_gwh']:+.1f} GWh<br>" +
+                              f"Avg: {row['avg_mw']:+.0f} MW<extra></extra>"
+            ))
+        
+        fig.add_vline(x=0, line_dash="dash", line_color="#666666", line_width=1)
+        
+        fig.update_layout(
+            title="Net Energy Flow by Country",
+            xaxis_title="Net Energy Flow (GWh)",
+            yaxis_title="",
+            height=350,
+            margin=dict(l=0, r=20, t=40, b=40),
+            paper_bgcolor="#0e1117",
+            plot_bgcolor="#0e1117",
+            font=dict(color="#fafafa"),
+            xaxis=dict(gridcolor="#333333", zerolinecolor="#666666"),
+            yaxis=dict(gridcolor="#333333"),
+        )
+        
+        st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+        
+        # Add import/export legend
+        st.markdown("""
+        <div style="display: flex; gap: 2rem; justify-content: center; font-size: 0.875rem; color: #808495;">
+            <span>← <strong>Export</strong> (negative)</span>
+            <span><strong>Import</strong> (positive) →</span>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col_right:
+        st.markdown("**Interconnector Details**")
+        
+        # Create detailed table
+        detail_df = flow_df[["interconnector", "country", "total_gwh", "avg_mw"]].copy()
+        detail_df.columns = ["Link", "Country", "Net (GWh)", "Avg (MW)"]
+        detail_df["Net (GWh)"] = detail_df["Net (GWh)"].apply(lambda x: f"{x:+.1f}")
+        detail_df["Avg (MW)"] = detail_df["Avg (MW)"].apply(lambda x: f"{x:+.0f}")
+        detail_df = detail_df.sort_values("Link")
+        
+        st.dataframe(detail_df, use_container_width=True, hide_index=True, height=300)
+
+
 def _create_sparkline(df: pd.DataFrame, x_col: str, y_col: str, color: str) -> alt.Chart:
     """Create a consistent sparkline chart"""
     return alt.Chart(df).mark_area(
