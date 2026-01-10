@@ -1,3 +1,7 @@
+from data_update import update_and_upload_carbon_data
+
+# Call the update function on every update
+update_and_upload_carbon_data()
 import streamlit as st
 from datetime import datetime, timezone
 from dotenv import load_dotenv
