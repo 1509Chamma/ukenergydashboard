@@ -73,7 +73,19 @@ def update_and_upload_carbon_data():
     # Clean and format
     if 'datetime' in df.columns:
         df['datetime'] = pd.to_datetime(df['datetime']).dt.strftime('%Y-%m-%dT%H:%M:%S')
-    df = df.fillna(0)
+    
+    # Only fill NaN in generation columns with 0, don't fill forecast/index
+    gen_cols = [col for col in df.columns if col.startswith('gen_')]
+    df[gen_cols] = df[gen_cols].fillna(0)
+    
+    # Filter out records with invalid forecast or index (should have actual values, not 0 or NaN)
+    df = df[(df['forecast'].notna()) & (df['forecast'] != 0) | (df['index'].notna())]
+    
+    if df.empty:
+        print("No valid carbon data to upload after validation")
+        return
+    
+    print(f"Uploading {len(df)} valid carbon records")
     # Get Supabase client
     supabase = get_supabase()
     # Convert DataFrame to list of dicts for Supabase
@@ -81,11 +93,18 @@ def update_and_upload_carbon_data():
     batch_size = 500
     for i in range(0, len(records), batch_size):
         batch = records[i:i+batch_size]
-        response = supabase.table('carbon_intensity').upsert(batch).execute()
-        if hasattr(response, 'status_code') and response.status_code >= 300:
-            print(f"Error uploading batch {i//batch_size+1}: {response}")
-        else:
-            print(f"Batch {i//batch_size+1} uploaded successfully.")
+        try:
+            response = supabase.table('carbon_intensity').upsert(batch, ignore_duplicates=False).execute()
+            if hasattr(response, 'status_code') and response.status_code >= 300:
+                print(f"Error uploading batch {i//batch_size+1}: {response}")
+            else:
+                print(f"Batch {i//batch_size+1} uploaded successfully.")
+        except Exception as e:
+            # If it's a duplicate key error, that's okay - data already exists
+            if '23505' in str(e) or 'duplicate' in str(e).lower():
+                print(f"Batch {i//batch_size+1}: Data already up to date")
+            else:
+                print(f"Error uploading batch {i//batch_size+1}: {e}")
 
 def is_weather_data_missing():
     """Check if there is missing weather data for any day in the past month in Supabase."""
@@ -154,8 +173,99 @@ def update_and_upload_weather_data():
     batch_size = 500
     for i in range(0, len(records), batch_size):
         batch = records[i:i+batch_size]
-        response = supabase.table('weather').upsert(batch).execute()
-        if hasattr(response, 'status_code') and response.status_code >= 300:
-            print(f"Error uploading weather batch {i//batch_size+1}: {response}")
+        try:
+            response = supabase.table('weather').upsert(batch, ignore_duplicates=False).execute()
+            if hasattr(response, 'status_code') and response.status_code >= 300:
+                print(f"Error uploading weather batch {i//batch_size+1}: {response}")
+            else:
+                print(f"Weather batch {i//batch_size+1} uploaded successfully.")
+        except Exception as e:
+            # If it's a duplicate key error, that's okay - data already exists
+            if '23505' in str(e) or 'duplicate' in str(e).lower():
+                print(f"Weather batch {i//batch_size+1}: Data already up to date")
+            else:
+                print(f"Error uploading weather batch {i//batch_size+1}: {e}")
+
+def is_demand_data_missing():
+    """Check if there is missing demand data for any day in the past month in Supabase."""
+    supabase = get_supabase()
+    today = date.today()
+    month_ago = today.replace(day=1)
+    response = supabase.table('historic_demand').select('datetime').gte('datetime', month_ago.strftime('%Y-%m-%d')).execute()
+    existing_dates = set()
+    if hasattr(response, 'data') and response.data:
+        for row in response.data:
+            dt = row.get('datetime')
+            if dt:
+                existing_dates.add(str(dt)[:10])
+    for i in range((today - month_ago).days + 1):
+        day = (month_ago + pd.Timedelta(days=i)).strftime('%Y-%m-%d')
+        if day not in existing_dates:
+            return True
+    return False
+
+def update_and_upload_demand_data():
+    """Fetch demand data from NESO API and upload to Supabase if newer data is available."""
+    supabase = get_supabase()
+    
+    # Get the latest datetime already in the database
+    try:
+        response = supabase.table('historic_demand').select('datetime').order('datetime', desc=True).limit(1).execute()
+        if response.data and len(response.data) > 0:
+            latest_date = pd.to_datetime(response.data[0]['datetime'])
+            start_date = latest_date + pd.Timedelta(hours=1)  # Query from one hour after latest
+            print(f"Latest demand data in DB: {latest_date.strftime('%Y-%m-%d %H:%M')}")
+            print(f"Fetching demand data from: {start_date.strftime('%Y-%m-%d %H:%M')}")
         else:
-            print(f"Weather batch {i//batch_size+1} uploaded successfully.")
+            # No data in DB, fetch from 3 months ago
+            start_date = date.today() - pd.Timedelta(days=90)
+            print(f"No demand data in DB, fetching from 90 days ago: {start_date.strftime('%Y-%m-%d')}")
+    except Exception as e:
+        print(f"Error checking latest demand date: {e}")
+        start_date = date.today() - pd.Timedelta(days=90)
+    
+    today = date.today()
+    sql_query = f'''SELECT * FROM "b2bde559-3455-4021-b179-dfe60c0337b0" WHERE "SETTLEMENT_DATE" >= '{start_date.strftime('%Y-%m-%d')}T00:00:00.000Z' AND "SETTLEMENT_DATE" <= '{(today + pd.Timedelta(days=1)).strftime('%Y-%m-%d')}T23:59:59.000Z' ORDER BY "SETTLEMENT_DATE" ASC'''
+    
+    try:
+        params = {'sql': sql_query}
+        response = requests.get(
+            'https://api.neso.energy/api/3/action/datastore_search_sql',
+            params=params,
+            timeout=120
+        )
+        response.raise_for_status()
+        data = response.json()
+        records = data.get('result', {}).get('records', [])
+    except Exception as e:
+        print(f"Error fetching demand data from NESO API: {e}")
+        return
+    
+    if not records:
+        print("No demand data fetched.")
+        return
+    
+    # Convert to DataFrame and clean
+    df = pd.DataFrame(records)
+    df = df.fillna(0)
+    
+    # Rename columns to lowercase with underscores for consistency
+    df.columns = [col.lower().replace(' ', '_') for col in df.columns]
+    
+    supabase = get_supabase()
+    records = df.to_dict(orient='records')
+    batch_size = 500
+    for i in range(0, len(records), batch_size):
+        batch = records[i:i+batch_size]
+        try:
+            response = supabase.table('historic_demand').upsert(batch, ignore_duplicates=False).execute()
+            if hasattr(response, 'status_code') and response.status_code >= 300:
+                print(f"Error uploading demand batch {i//batch_size+1}: {response}")
+            else:
+                print(f"Demand batch {i//batch_size+1} uploaded successfully.")
+        except Exception as e:
+            # If it's a duplicate key error, that's okay - data already exists
+            if '23505' in str(e) or 'duplicate' in str(e).lower():
+                print(f"Demand batch {i//batch_size+1}: Data already up to date")
+            else:
+                print(f"Error uploading demand batch {i//batch_size+1}: {e}")
