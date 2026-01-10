@@ -2,7 +2,180 @@ import pandas as pd
 import streamlit as st
 import altair as alt
 import plotly.graph_objects as go
+import plotly.express as px
 from datetime import date, datetime, timedelta
+
+# UK Region coordinates (approximate centers for each DNO region)
+UK_REGION_COORDS = {
+    "North Scotland": {"lat": 57.5, "lon": -4.5},
+    "South Scotland": {"lat": 55.9, "lon": -3.7},
+    "North East England": {"lat": 55.0, "lon": -1.6},
+    "North West England": {"lat": 53.8, "lon": -2.5},
+    "South Yorkshire": {"lat": 53.5, "lon": -1.2},
+    "North Wales & Merseyside": {"lat": 53.2, "lon": -3.2},
+    "South Wales": {"lat": 51.6, "lon": -3.4},
+    "West Midlands": {"lat": 52.5, "lon": -2.0},
+    "East Midlands": {"lat": 52.8, "lon": -0.8},
+    "East England": {"lat": 52.2, "lon": 0.9},
+    "South West England": {"lat": 50.7, "lon": -3.5},
+    "South England": {"lat": 51.0, "lon": -1.3},
+    "London": {"lat": 51.5, "lon": -0.1},
+    "South East England": {"lat": 51.2, "lon": 0.5},
+}
+
+def _get_carbon_color(intensity: float) -> str:
+    """Get color based on carbon intensity severity"""
+    if intensity < 100:
+        return "#22c55e"  # Green - Very Low
+    elif intensity < 150:
+        return "#84cc16"  # Light Green - Low
+    elif intensity < 200:
+        return "#eab308"  # Yellow - Moderate
+    elif intensity < 250:
+        return "#f97316"  # Orange - High
+    else:
+        return "#ef4444"  # Red - Very High
+
+def _get_carbon_rating(intensity: float) -> str:
+    """Get rating text based on carbon intensity"""
+    if intensity < 100:
+        return "Very Low"
+    elif intensity < 150:
+        return "Low"
+    elif intensity < 200:
+        return "Moderate"
+    elif intensity < 250:
+        return "High"
+    else:
+        return "Very High"
+
+
+def uk_carbon_map(carbon_df: pd.DataFrame, demand_df: pd.DataFrame):
+    """Create a UK map showing carbon intensity by region with demand summary"""
+    
+    if carbon_df.empty:
+        st.info("No carbon data available for the selected date range and regions.")
+        return
+    
+    # Calculate average carbon intensity per region
+    region_avg = carbon_df.groupby("region_name")["forecast"].mean().reset_index()
+    region_avg.columns = ["region", "intensity"]
+    
+    # Add coordinates
+    region_avg["lat"] = region_avg["region"].map(lambda r: UK_REGION_COORDS.get(r, {}).get("lat"))
+    region_avg["lon"] = region_avg["region"].map(lambda r: UK_REGION_COORDS.get(r, {}).get("lon"))
+    region_avg["color"] = region_avg["intensity"].apply(_get_carbon_color)
+    region_avg["rating"] = region_avg["intensity"].apply(_get_carbon_rating)
+    
+    # Filter out regions without coordinates
+    region_avg = region_avg.dropna(subset=["lat", "lon"])
+    
+    if region_avg.empty:
+        st.warning("No matching regions found for map display.")
+        return
+    
+    # Create the map
+    fig = go.Figure()
+    
+    # Add markers for each region
+    for _, row in region_avg.iterrows():
+        fig.add_trace(go.Scattergeo(
+            lon=[row["lon"]],
+            lat=[row["lat"]],
+            mode="markers+text",
+            marker=dict(
+                size=45,
+                color=row["color"],
+                opacity=0.85,
+                line=dict(width=2, color="#ffffff")
+            ),
+            text=f"{row['intensity']:.0f}",
+            textposition="middle center",
+            textfont=dict(size=11, color="white", family="Arial Black"),
+            hovertemplate=(
+                f"<b>{row['region']}</b><br>"
+                f"Carbon: {row['intensity']:.0f} g/kWh<br>"
+                f"Rating: {row['rating']}<extra></extra>"
+            ),
+            name=row["region"],
+            showlegend=False
+        ))
+    
+    # Configure map layout - dark theme UK focus
+    fig.update_layout(
+        geo=dict(
+            scope="europe",
+            projection_type="natural earth",
+            center=dict(lat=54.5, lon=-2.5),
+            lonaxis_range=[-8, 3],
+            lataxis_range=[49, 59],
+            bgcolor="#0e1117",
+            landcolor="#1e1e2e",
+            oceancolor="#0e1117",
+            lakecolor="#0e1117",
+            coastlinecolor="#333333",
+            countrycolor="#333333",
+            showland=True,
+            showocean=True,
+            showlakes=True,
+            showcoastlines=True,
+            showcountries=True,
+        ),
+        height=500,
+        margin=dict(l=0, r=0, t=30, b=0),
+        paper_bgcolor="#0e1117",
+        plot_bgcolor="#0e1117",
+        font=dict(color="#fafafa"),
+        title=dict(
+            text="Carbon Intensity by Region (g CO2/kWh)",
+            x=0.5,
+            font=dict(size=16)
+        )
+    )
+    
+    st.plotly_chart(fig, use_container_width=True)
+    
+    # Add legend/key below map
+    st.markdown("**Intensity Scale:**")
+    cols = st.columns(5)
+    levels = [
+        ("Very Low", "<100", "#22c55e"),
+        ("Low", "100-149", "#84cc16"),
+        ("Moderate", "150-199", "#eab308"),
+        ("High", "200-249", "#f97316"),
+        ("Very High", "250+", "#ef4444"),
+    ]
+    for col, (label, range_str, color) in zip(cols, levels):
+        col.markdown(f"<div style='text-align:center;'><span style='background-color:{color}; padding:4px 12px; border-radius:4px; color:white; font-weight:bold;'>{range_str}</span><br><small>{label}</small></div>", unsafe_allow_html=True)
+    
+    # Show regional breakdown table
+    st.divider()
+    
+    col1, col2 = st.columns([2, 1])
+    
+    with col1:
+        st.markdown("**Regional Carbon Intensity**")
+        # Sort by intensity descending
+        display_df = region_avg[["region", "intensity", "rating"]].sort_values("intensity", ascending=False)
+        display_df.columns = ["Region", "Intensity (g/kWh)", "Rating"]
+        display_df["Intensity (g/kWh)"] = display_df["Intensity (g/kWh)"].round(0).astype(int)
+        st.dataframe(display_df, use_container_width=True, hide_index=True)
+    
+    with col2:
+        st.markdown("**National Demand Summary**")
+        if not demand_df.empty and "nd" in demand_df.columns:
+            avg_demand = demand_df["nd"].mean()
+            max_demand = demand_df["nd"].max()
+            min_demand = demand_df["nd"].min()
+            latest_demand = demand_df["nd"].iloc[-1] if len(demand_df) > 0 else 0
+            
+            st.metric("Current", f"{latest_demand:,.0f} MW")
+            st.metric("Average", f"{avg_demand:,.0f} MW")
+            st.metric("Peak", f"{max_demand:,.0f} MW")
+            st.metric("Minimum", f"{min_demand:,.0f} MW")
+        else:
+            st.info("No demand data available.")
+
 
 def _create_sparkline(df: pd.DataFrame, x_col: str, y_col: str, color: str) -> alt.Chart:
     """Create a consistent sparkline chart"""
