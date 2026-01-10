@@ -23,6 +23,103 @@ UK_REGION_COORDS = {
     "South East England": {"lat": 51.2, "lon": 0.5},
 }
 
+
+def explanatory_summary(demand_df: pd.DataFrame, carbon_df: pd.DataFrame, weather_df: pd.DataFrame, focus_metric: str = None):
+    """Generate 3-5 bullet point insights based on filtered data and analysis focus"""
+    
+    insights = []
+    
+    # Demand insights
+    if not demand_df.empty and "tsd" in demand_df.columns:
+        avg_demand = demand_df["tsd"].mean()
+        max_demand = demand_df["tsd"].max()
+        min_demand = demand_df["tsd"].min()
+        demand_range = max_demand - min_demand
+        
+        # Peak demand insight
+        if "settlement_date" in demand_df.columns:
+            peak_idx = demand_df["tsd"].idxmax()
+            peak_time = demand_df.loc[peak_idx, "settlement_date"]
+            if isinstance(peak_time, pd.Timestamp):
+                insights.append(f"<strong>Peak demand</strong> of <strong>{max_demand:,.0f} MW</strong> occurred on {peak_time.strftime('%d %b %Y at %H:%M')}")
+        
+        # Demand variability
+        if demand_range > 10000:
+            insights.append(f"<strong>High demand variability</strong> observed — ranging from {min_demand:,.0f} MW to {max_demand:,.0f} MW (Δ {demand_range:,.0f} MW)")
+        elif demand_range > 5000:
+            insights.append(f"<strong>Moderate demand fluctuation</strong> — average of {avg_demand:,.0f} MW with {demand_range:,.0f} MW spread")
+    
+    # Carbon insights
+    if not carbon_df.empty and "forecast" in carbon_df.columns:
+        avg_carbon = carbon_df["forecast"].mean()
+        carbon_rating = _get_carbon_rating(avg_carbon)
+        
+        # Regional comparison
+        if "region_name" in carbon_df.columns:
+            region_avg = carbon_df.groupby("region_name")["forecast"].mean()
+            cleanest = region_avg.idxmin()
+            dirtiest = region_avg.idxmax()
+            
+            if cleanest != dirtiest:
+                insights.append(f"<strong>Cleanest region</strong>: {cleanest} ({region_avg[cleanest]:.0f} g/kWh) vs <strong>highest carbon</strong>: {dirtiest} ({region_avg[dirtiest]:.0f} g/kWh)")
+        
+        # Overall carbon rating
+        insights.append(f"<strong>Average carbon intensity</strong>: {avg_carbon:.0f} g CO₂/kWh — rated <strong>{carbon_rating}</strong>")
+    
+    # Weather insights
+    if not weather_df.empty:
+        if "temperature" in weather_df.columns:
+            avg_temp = weather_df["temperature"].mean()
+            temp_trend = "mild" if 10 <= avg_temp <= 18 else ("cold" if avg_temp < 10 else "warm")
+            insights.append(f"<strong>Weather conditions</strong> were {temp_trend} with average temperature of <strong>{avg_temp:.1f}°C</strong>")
+        
+        if "wind_speed" in weather_df.columns:
+            avg_wind = weather_df["wind_speed"].mean()
+            if avg_wind > 20:
+                insights.append(f"<strong>Strong winds</strong> averaging {avg_wind:.1f} km/h — favourable for wind generation")
+            elif avg_wind > 10:
+                insights.append(f"<strong>Moderate winds</strong> at {avg_wind:.1f} km/h average")
+    
+    # Focus-specific insight
+    if focus_metric:
+        focus_insight = {
+            "demand": "📊 Currently focusing on <strong>demand patterns</strong> — click KPI cards to change focus",
+            "carbon": "🌱 Currently focusing on <strong>carbon intensity</strong> — useful for identifying low-emission periods",
+            "temperature": "🌡️ Currently focusing on <strong>temperature</strong> — correlates with heating/cooling demand",
+            "wind": "💨 Currently focusing on <strong>wind speed</strong> — key driver for renewable generation"
+        }
+        if focus_metric in focus_insight:
+            insights.append(focus_insight[focus_metric])
+    
+    # Ensure we have at least 3 insights
+    if len(insights) < 3:
+        if not demand_df.empty:
+            days_span = (demand_df["settlement_date"].max() - demand_df["settlement_date"].min()).days if "settlement_date" in demand_df.columns else 0
+            if days_span > 0:
+                insights.append(f"Data spans <strong>{days_span} days</strong> of energy metrics")
+    
+    # Render as styled text panel
+    if insights:
+        # Build bullet list HTML
+        bullets_html = "".join([f'<li style="margin-bottom: 0.5rem;">{insight}</li>' for insight in insights[:5]])
+        
+        st.markdown(f"""
+        <div style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); 
+                    padding: 1.25rem 1.5rem; 
+                    border-radius: 10px; 
+                    border-left: 3px solid #ff4b4b;
+                    margin: 1rem 0;">
+            <h4 style="margin: 0 0 0.75rem 0; color: #fafafa; font-size: 1rem; font-weight: 600;">
+                📈 Key Insights
+            </h4>
+            <ul style="margin: 0; padding-left: 1.25rem; color: #e0e0e0; line-height: 1.6;">
+                {bullets_html}
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        st.info("Select data filters to generate insights.")
+
 def _get_carbon_color(intensity: float) -> str:
     """Get color based on carbon intensity severity"""
     if intensity < 100:

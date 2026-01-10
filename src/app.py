@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from supabase_client import get_supabase
 from data.loaders import fetch_demand_range, fetch_carbon_range, fetch_weather_range, fetch_date_bounds
 from components.sidebar import render_sidebar
-from components.charts import demand_chart, carbon_chart, weather_charts, summary_kpis, multi_series_chart, uk_carbon_map
+from components.charts import demand_chart, carbon_chart, weather_charts, summary_kpis, multi_series_chart, uk_carbon_map, explanatory_summary
 
 load_dotenv()
 
@@ -98,6 +98,9 @@ for i, tab_name in enumerate(TAB_NAMES):
 # Render content based on active tab
 if st.session_state.active_tab == 0:  # Summary
     summary_kpis(demand_df, carbon_df, weather_df)
+    
+    # Explanatory insights panel
+    explanatory_summary(demand_df, carbon_df, weather_df, focus_metric=st.session_state.focus_metric)
     
     # Multi-series time chart with range brushing
     st.divider()
