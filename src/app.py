@@ -3,7 +3,7 @@ import threading
 from datetime import datetime, timezone
 from dotenv import load_dotenv
 from supabase_client import get_supabase
-from data.loaders import fetch_demand_range, fetch_carbon_range, fetch_weather_range, fetch_date_bounds
+from data.loaders import fetch_demand_range, fetch_carbon_range, fetch_weather_range, fetch_date_bounds, should_run_update
 from components.sidebar import render_sidebar
 from components.charts import demand_chart, carbon_chart, weather_charts, summary_kpis, multi_series_chart, uk_carbon_map, explanatory_summary, uk_import_dependency, carbon_heatmap, generation_mix_stacked_bar
 from data_update import update_and_upload_carbon_data, update_and_upload_weather_data, update_and_upload_demand_data
@@ -11,7 +11,7 @@ from components.time_series_experimentation import render_time_series_experiment
 
 load_dotenv()
 
-# Background data update (non-blocking)
+# Background data update (non-blocking, once per day)
 def _run_data_updates():
     try:
         update_and_upload_carbon_data()
@@ -31,7 +31,10 @@ if "data_update_started" not in st.session_state:
     st.session_state.data_update_thread = None
     st.session_state.data_update_applied = False
 
-if not st.session_state.data_update_started:
+supabase = get_supabase()
+
+# Only run update if 24 hours have passed since last update (global check)
+if not st.session_state.data_update_started and should_run_update(supabase, hours_interval=24):
     st.session_state.data_update_thread = threading.Thread(target=_run_data_updates, daemon=True)
     st.session_state.data_update_thread.start()
     st.session_state.data_update_started = True
@@ -67,7 +70,6 @@ if "active_timerange" not in st.session_state:
     st.session_state.active_timerange = None
 if "active_tab" not in st.session_state:
     st.session_state.active_tab = 0
-supabase = get_supabase()
 
 st.set_page_config(page_title="Energy Dashboard", layout="wide")
 st.title("Energy Dashboard")
