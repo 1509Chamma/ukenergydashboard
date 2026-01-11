@@ -191,60 +191,64 @@ def render_time_series_experimentation(supabase, min_date, max_date):
     carbon_df = st.session_state.experiment_carbon_df
     weather_df = st.session_state.experiment_weather_df
     
+    # Helper function to standardize datetime column to timezone-naive UTC
+    def standardize_datetime(df, datetime_col='datetime'):
+        """Ensure datetime is timezone-naive and in UTC"""
+        if df.empty:
+            return df
+        
+        if datetime_col not in df.columns:
+            timestamp_cols = df.select_dtypes(include=['datetime64']).columns
+            if len(timestamp_cols) > 0:
+                df = df.rename(columns={timestamp_cols[0]: datetime_col})
+        
+        if datetime_col in df.columns:
+            # Convert to datetime
+            df[datetime_col] = pd.to_datetime(df[datetime_col])
+            # Remove timezone info to make timezone-naive
+            if df[datetime_col].dt.tz is not None:
+                df[datetime_col] = df[datetime_col].dt.tz_localize(None)
+        
+        return df
+    
     # Combine datasets - start with demand as base
     combined_df = demand_df.copy() if not demand_df.empty else pd.DataFrame()
-    
-    # Ensure datetime column exists
-    if not combined_df.empty:
-        if 'datetime' not in combined_df.columns:
-            timestamp_cols = combined_df.select_dtypes(include=['datetime64']).columns
-            if len(timestamp_cols) > 0:
-                combined_df = combined_df.rename(columns={timestamp_cols[0]: 'datetime'})
-        
-        # Convert datetime to ensure consistency
-        combined_df['datetime'] = pd.to_datetime(combined_df['datetime'])
+    combined_df = standardize_datetime(combined_df, 'datetime')
     
     # Merge carbon data using outer join to preserve all demand data
     if not carbon_df.empty:
-        if 'datetime' not in carbon_df.columns:
-            timestamp_cols = carbon_df.select_dtypes(include=['datetime64']).columns
-            if len(timestamp_cols) > 0:
-                carbon_df = carbon_df.rename(columns={timestamp_cols[0]: 'datetime'})
-        
-        carbon_df['datetime'] = pd.to_datetime(carbon_df['datetime'])
+        carbon_df = standardize_datetime(carbon_df, 'datetime')
         numeric_carbon_cols = carbon_df.select_dtypes(include=[np.number]).columns.tolist()
         agg_dict = {col: 'mean' for col in numeric_carbon_cols}
         
         carbon_agg = carbon_df.groupby('datetime').agg(agg_dict).reset_index()
         carbon_agg.columns = ['datetime'] + [f'carbon_{c}' for c in carbon_agg.columns[1:]]
         
-        if not combined_df.empty:
+        if not combined_df.empty and 'datetime' in combined_df.columns:
             combined_df = pd.merge(combined_df, carbon_agg, on='datetime', how='outer')
-        else:
+        elif combined_df.empty:
             combined_df = carbon_agg
     
     # Merge weather data using outer join
     if not weather_df.empty:
-        if 'datetime' not in weather_df.columns:
-            timestamp_cols = weather_df.select_dtypes(include=['datetime64']).columns
-            if len(timestamp_cols) > 0:
-                weather_df = weather_df.rename(columns={timestamp_cols[0]: 'datetime'})
-        
-        weather_df['datetime'] = pd.to_datetime(weather_df['datetime'])
+        weather_df = standardize_datetime(weather_df, 'datetime')
         numeric_weather_cols = weather_df.select_dtypes(include=[np.number]).columns.tolist()
         agg_dict = {col: 'mean' for col in numeric_weather_cols}
         
         weather_agg = weather_df.groupby('datetime').agg(agg_dict).reset_index()
         weather_agg.columns = ['datetime'] + [f'weather_{c}' for c in weather_agg.columns[1:]]
         
-        if not combined_df.empty:
+        if not combined_df.empty and 'datetime' in combined_df.columns:
             combined_df = pd.merge(combined_df, weather_agg, on='datetime', how='outer')
-        else:
+        elif combined_df.empty:
             combined_df = weather_agg
     
     if combined_df.empty:
         st.warning("No data available for experimentation. Please load data first.")
         return
+    
+    # Ensure datetime is standardized after all merges
+    combined_df = standardize_datetime(combined_df, 'datetime')
     
     # Sort by datetime and drop duplicates
     combined_df = combined_df.sort_values('datetime').drop_duplicates(subset=['datetime'])
