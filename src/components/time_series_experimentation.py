@@ -9,8 +9,127 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from statsmodels.tsa.seasonal import seasonal_decompose
 import altair as alt
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
 TIMEOUT_SECONDS = 30 * 60  # 30 minutes
+
+def create_interactive_forecast_chart(combined_df, target_col, y_test, y_pred, model, X_test, feature_cols):
+    """Create interactive Plotly chart with predictions and forecast for next week"""
+    
+    # Prepare test data with actual vs predicted
+    test_indices = combined_df.tail(len(y_test)).index
+    test_dates = combined_df.loc[test_indices, 'datetime'].values
+    
+    # Create forecast for next 7 days
+    last_datetime = combined_df['datetime'].max()
+    forecast_dates = pd.date_range(start=last_datetime + pd.Timedelta(hours=1), periods=7*24, freq='1H')
+    
+    # Use last values and patterns for simple forecast
+    last_X = X_test.iloc[-1:].values
+    forecast_values = []
+    X_current = last_X.copy()
+    
+    for _ in range(len(forecast_dates)):
+        next_pred = model.predict(X_current.reshape(1, -1))[0]
+        forecast_values.append(next_pred)
+        X_current = np.roll(X_current, -1)
+        X_current[-1] = next_pred
+    
+    # Filter to last 2 weeks for forecast view
+    two_weeks_ago = last_datetime - pd.Timedelta(days=14)
+    recent_mask = test_dates >= np.datetime64(two_weeks_ago)
+    recent_test_dates = test_dates[recent_mask]
+    recent_y_test = y_test.values[recent_mask]
+    recent_y_pred = y_pred[recent_mask]
+    
+    # Get last 180 days for overview
+    days_180_ago = last_datetime - pd.Timedelta(days=180)
+    last_180_mask = combined_df['datetime'] >= days_180_ago
+    last_180_df = combined_df[last_180_mask]
+    
+    # Create subplots: top = zoomed forecast (2 weeks + 7 day forecast), bottom = 180 day overview
+    fig = make_subplots(
+        rows=2, cols=1,
+        subplot_titles=('Forecast View (Last 2 Weeks + 7-Day Forecast)', 'Last 180 Days Overview'),
+        vertical_spacing=0.12,
+        row_heights=[0.5, 0.5]
+    )
+    
+    # TOP CHART: Zoomed into last 2 weeks predictions and forecast
+    # Actual values from test set (last 2 weeks)
+    fig.add_trace(
+        go.Scatter(
+            x=recent_test_dates, 
+            y=recent_y_test,
+            mode='lines',
+            name='Actual',
+            line=dict(color='blue', width=2),
+            hovertemplate='%{x}<br>Actual: %{y:.2f}<extra></extra>'
+        ),
+        row=1, col=1
+    )
+    
+    # Predicted values (dotted line, last 2 weeks)
+    fig.add_trace(
+        go.Scatter(
+            x=recent_test_dates,
+            y=recent_y_pred,
+            mode='lines',
+            name='Predicted',
+            line=dict(color='orange', width=2, dash='dot'),
+            hovertemplate='%{x}<br>Predicted: %{y:.2f}<extra></extra>'
+        ),
+        row=1, col=1
+    )
+    
+    # Forecast (dashed line)
+    fig.add_trace(
+        go.Scatter(
+            x=forecast_dates,
+            y=forecast_values,
+            mode='lines',
+            name='Forecast (7 days)',
+            line=dict(color='red', width=2, dash='dash'),
+            hovertemplate='%{x}<br>Forecast: %{y:.2f}<extra></extra>'
+        ),
+        row=1, col=1
+    )
+    
+    # BOTTOM CHART: Last 180 days overview with actual target values
+    fig.add_trace(
+        go.Scatter(
+            x=last_180_df['datetime'],
+            y=last_180_df[target_col],
+            mode='lines',
+            name='Historical (180 days)',
+            line=dict(color='green', width=1.5),
+            hovertemplate='%{x}<br>Value: %{y:.2f}<extra></extra>',
+            showlegend=True
+        ),
+        row=2, col=1
+    )
+    
+    # Update layout for interactivity
+    fig.update_xaxes(title_text="Date", row=1, col=1)
+    fig.update_xaxes(title_text="Date", row=2, col=1)
+    fig.update_yaxes(title_text=target_col, row=1, col=1)
+    fig.update_yaxes(title_text=target_col, row=2, col=1)
+    
+    fig.update_layout(
+        height=700,
+        hovermode='x unified',
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1
+        ),
+        margin=dict(l=50, r=50, t=80, b=50)
+    )
+    
+    return fig
 
 def prepare_time_series_features(df, target_col, feature_cols, datetime_col='datetime'):
     """Prepare features with lagged values and time components"""
@@ -116,19 +235,6 @@ def run_correlation_analysis(df, target_col, feature_cols):
     target_corr = corr_matrix[target_col].drop(target_col).sort_values(ascending=False)
     
     return corr_matrix, target_corr
-
-def run_seasonal_decomposition(df, target_col, datetime_col='datetime', period=24):
-    """Perform seasonal decomposition"""
-    df = df.copy()
-    df[datetime_col] = pd.to_datetime(df[datetime_col])
-    df = df.sort_values(datetime_col).set_index(datetime_col)
-    
-    if len(df) < 2 * period:
-        return None
-    
-    decomposition = seasonal_decompose(df[target_col], model='additive', period=period)
-    
-    return decomposition
 
 def render_time_series_experimentation(supabase, min_date, max_date):
     """Render the time series experimentation UI with lazy data loading"""
@@ -296,7 +402,7 @@ def render_time_series_experimentation(supabase, min_date, max_date):
     # Method selection
     method = st.selectbox(
         "Methodology",
-        ["Linear Regression", "Random Forest", "Correlation Analysis", "Seasonal Decomposition"],
+        ["Linear Regression", "Random Forest", "Correlation Analysis"],
         key="exp_method"
     )
     
@@ -335,14 +441,10 @@ def render_time_series_experimentation(supabase, min_date, max_date):
                     col2.metric("RMSE", f"{metrics['RMSE']:.2f}")
                     col3.metric("R²", f"{metrics['R²']:.3f}")
                     
-                    # Plot predictions vs actual
-                    results_df = pd.DataFrame({'Actual': y_test, 'Predicted': y_pred})
-                    chart = alt.Chart(results_df.reset_index()).mark_line().encode(
-                        x='index:Q',
-                        y=alt.Y('value:Q', title=target_feature),
-                        color='variable:N'
-                    ).transform_fold(['Actual', 'Predicted'], as_=['variable', 'value'])
-                    st.altair_chart(chart, use_container_width=True)
+                    st.markdown("**Interactive Predictions & Forecast**")
+                    # Create interactive chart with forecast
+                    fig = create_interactive_forecast_chart(combined_df, target_feature, y_test, y_pred, model, X_test, input_features)
+                    st.plotly_chart(fig, use_container_width=True)
                 
                 elif method == "Random Forest":
                     metrics, y_pred, model, feature_importance = run_random_forest(
@@ -359,14 +461,10 @@ def render_time_series_experimentation(supabase, min_date, max_date):
                     st.markdown("**Top 10 Important Features**")
                     st.dataframe(feature_importance, use_container_width=True)
                     
-                    # Plot predictions vs actual
-                    results_df = pd.DataFrame({'Actual': y_test, 'Predicted': y_pred})
-                    chart = alt.Chart(results_df.reset_index()).mark_line().encode(
-                        x='index:Q',
-                        y=alt.Y('value:Q', title=target_feature),
-                        color='variable:N'
-                    ).transform_fold(['Actual', 'Predicted'], as_=['variable', 'value'])
-                    st.altair_chart(chart, use_container_width=True)
+                    st.markdown("**Interactive Predictions & Forecast**")
+                    # Create interactive chart with forecast
+                    fig = create_interactive_forecast_chart(combined_df, target_feature, y_test, y_pred, model, X_test, input_features)
+                    st.plotly_chart(fig, use_container_width=True)
             
             elif method == "Correlation Analysis":
                 progress_bar.progress(0.5)
@@ -382,44 +480,77 @@ def render_time_series_experimentation(supabase, min_date, max_date):
                 st.success(f"Analysis complete in {time.time() - start_time:.2f}s")
                 
                 st.markdown(f"**Correlations with {target_feature}**")
+                
+                # Sort by correlation strength
                 corr_df = pd.DataFrame({'Feature': target_corr.index, 'Correlation': target_corr.values})
-                st.dataframe(corr_df, use_container_width=True)
+                corr_df = corr_df.sort_values('Correlation', key=abs, ascending=False)
                 
-                # Heatmap
-                chart = alt.Chart(corr_df).mark_bar().encode(
-                    x=alt.X('Correlation:Q', scale=alt.Scale(domain=[-1, 1])),
-                    y=alt.Y('Feature:N', sort='-x'),
-                    color=alt.Color('Correlation:Q', scale=alt.Scale(scheme='redblue', domain=[-1, 1]))
+                # Create horizontal bar chart with color coding
+                fig = go.Figure()
+                
+                colors = ['red' if x < -0.5 else 'orange' if x < 0 else 'lightgreen' if x < 0.5 else 'green' 
+                         for x in corr_df['Correlation']]
+                
+                fig.add_trace(go.Bar(
+                    y=corr_df['Feature'],
+                    x=corr_df['Correlation'],
+                    orientation='h',
+                    marker=dict(
+                        color=corr_df['Correlation'],
+                        colorscale='RdBu',
+                        cmin=-1,
+                        cmax=1,
+                        colorbar=dict(title="Correlation")
+                    ),
+                    text=[f"{val:.3f}" for val in corr_df['Correlation']],
+                    textposition='outside',
+                    hovertemplate='%{y}: %{x:.3f}<extra></extra>'
+                ))
+                
+                fig.update_layout(
+                    title=f"Feature Correlations with {target_feature}",
+                    xaxis_title="Correlation Coefficient",
+                    yaxis_title="Features",
+                    height=400,
+                    margin=dict(l=150, r=50, t=50, b=50)
                 )
-                st.altair_chart(chart, use_container_width=True)
+                
+                st.plotly_chart(fig, use_container_width=True)
+                
+                # Heatmap of full correlation matrix
+                st.markdown("**Full Correlation Matrix**")
+                fig_heatmap = go.Figure(data=go.Heatmap(
+                    z=corr_matrix.values,
+                    x=corr_matrix.columns,
+                    y=corr_matrix.columns,
+                    colorscale='RdBu',
+                    zmid=0,
+                    zmin=-1,
+                    zmax=1,
+                    hovertemplate='%{y} vs %{x}: %{z:.3f}<extra></extra>',
+                    colorbar=dict(title="Correlation")
+                ))
+                
+                fig_heatmap.update_layout(height=600, width=700)
+                st.plotly_chart(fig_heatmap, use_container_width=True)
+                
+                # Statistical summary
+                st.markdown("**Correlation Insights**")
+                col1, col2, col3 = st.columns(3)
+                
+                strongest_corr = corr_df.iloc[0]
+                col1.metric(
+                    "Strongest Correlation",
+                    strongest_corr['Feature'],
+                    f"{strongest_corr['Correlation']:.3f}"
+                )
+                
+                positive_corrs = (corr_df['Correlation'] > 0.3).sum()
+                col2.metric("Positive Correlations (>0.3)", positive_corrs)
+                
+                negative_corrs = (corr_df['Correlation'] < -0.3).sum()
+                col3.metric("Negative Correlations (<-0.3)", negative_corrs)
             
-            elif method == "Seasonal Decomposition":
-                progress_bar.progress(0.3)
-                status_text.text("Performing seasonal decomposition...")
-                
-                decomposition = run_seasonal_decomposition(combined_df, target_feature)
-                
-                if decomposition is None:
-                    st.error("Not enough data for seasonal decomposition (need at least 48 observations).")
-                    return
-                
-                progress_bar.progress(1.0)
-                status_text.text("Decomposition complete!")
-                
-                st.success(f"Analysis complete in {time.time() - start_time:.2f}s")
-                
-                # Plot components
-                components = ['observed', 'trend', 'seasonal', 'resid']
-                for component in components:
-                    data = getattr(decomposition, component)
-                    df_plot = pd.DataFrame({'datetime': data.index, 'value': data.values})
-                    
-                    chart = alt.Chart(df_plot).mark_line().encode(
-                        x='datetime:T',
-                        y='value:Q'
-                    ).properties(title=component.title())
-                    
-                    st.altair_chart(chart, use_container_width=True)
             
             # Check timeout
             elapsed = time.time() - start_time
