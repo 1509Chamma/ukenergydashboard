@@ -247,10 +247,21 @@ def update_and_upload_demand_data():
     
     # Convert to DataFrame and clean
     df = pd.DataFrame(records)
-    df = df.fillna(0)
     
     # Rename columns to lowercase with underscores for consistency
     df.columns = [col.lower().replace(' ', '_') for col in df.columns]
+    
+    # Remove metadata columns that start with underscore (e.g., _id, _full_text)
+    df = df[[col for col in df.columns if not col.startswith('_')]]
+    
+    # Map settlement_date to datetime for consistency with schema
+    if 'settlement_date' in df.columns:
+        df['datetime'] = pd.to_datetime(df['settlement_date'])
+        df = df.drop(columns=['settlement_date'])
+    
+    # Fill NaN only in numeric columns
+    numeric_cols = df.select_dtypes(include=['number']).columns
+    df[numeric_cols] = df[numeric_cols].fillna(0)
     
     supabase = get_supabase()
     records = df.to_dict(orient='records')

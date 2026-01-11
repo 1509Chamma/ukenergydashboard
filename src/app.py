@@ -129,7 +129,7 @@ else:
     st.warning("Please select at least one region to view data.")
 
 # Custom persistent tabs
-TAB_NAMES = ["Summary", "Demand & Carbon", "Weather"]
+TAB_NAMES = ["Summary", "Demand & Carbon", "Weather", "Experimentation"]
 
 # Create tab-like buttons with CSS styling to match native tabs
 st.markdown("""
@@ -170,7 +170,7 @@ div.stButton {
 """, unsafe_allow_html=True)
 
 # Tab buttons in columns - wider for "Demand & Carbon"
-tab_cols = st.columns([1, 1.8, 1, 6])  # 3 tabs + spacer
+tab_cols = st.columns([1, 1.8, 1, 1.5, 5])  # 4 tabs + spacer
 for i, tab_name in enumerate(TAB_NAMES):
     with tab_cols[i]:
         if st.button(tab_name, key=f"tab_{i}"):
@@ -221,3 +221,21 @@ elif st.session_state.active_tab == 2:  # Weather
     st.divider()
     st.markdown("<h3 style='margin-bottom:0.5rem;'>Weather/Energy Exploratory Scatter Plot</h3>", unsafe_allow_html=True)
     exploratory_scatter_plot(weather_df, demand_df, carbon_df)
+
+elif st.session_state.active_tab == 3:  # Experimentation
+    st.subheader("Experimentation")
+    st.info("This tab is for experimental features and analysis.")
+    
+    # Placeholder for experimental content
+    st.markdown("### Available Data")
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("Demand Records", len(demand_df))
+    with col2:
+        st.metric("Carbon Records", len(carbon_df))
+    with col3:
+        st.metric("Weather Records", len(weather_df))
+    
+    st.divider()
+    st.markdown("### Custom Analysis")
+    st.write("Add your experimental visualizations and analysis here.")
