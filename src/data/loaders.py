@@ -96,39 +96,61 @@ def fetch_demand_range(_supabase, start: date, end: date) -> pd.DataFrame:
 @st.cache_data(ttl=300)
 def fetch_carbon_range(_supabase, start: date, end: date, regions: tuple) -> pd.DataFrame:
     """Fetch carbon intensity data. Regions must be a tuple for caching."""
-    if not _supabase or not regions:
+    if not _supabase:
         return pd.DataFrame()
-    regions_list = list(regions)
+    
     start_dt = datetime.combine(start, datetime.min.time())
     end_dt = datetime.combine(end, datetime.max.time())
     
-    query = (
-        _supabase.table("carbon_intensity")
-        .select("*")
-        .in_("region_name", regions_list)
-        .gte("datetime", start_dt.isoformat())
-        .lte("datetime", end_dt.isoformat())
-        .order("datetime", desc=False)
-    )
+    if regions:
+        regions_list = list(regions)
+        query = (
+            _supabase.table("carbon_intensity")
+            .select("*")
+            .in_("region_name", regions_list)
+            .gte("datetime", start_dt.isoformat())
+            .lte("datetime", end_dt.isoformat())
+            .order("datetime", desc=False)
+        )
+    else:
+        # If no regions specified, fetch all
+        query = (
+            _supabase.table("carbon_intensity")
+            .select("*")
+            .gte("datetime", start_dt.isoformat())
+            .lte("datetime", end_dt.isoformat())
+            .order("datetime", desc=False)
+        )
     data = _fetch_all_pages(_supabase, "carbon_intensity", query)
     return pd.DataFrame(data)
 
 @st.cache_data(ttl=300)
 def fetch_weather_range(_supabase, start: date, end: date, regions: tuple) -> pd.DataFrame:
     """Fetch weather data. Regions must be a tuple for caching."""
-    if not _supabase or not regions:
+    if not _supabase:
         return pd.DataFrame()
-    regions_list = list(regions)
+    
     start_dt = datetime.combine(start, datetime.min.time())
     end_dt = datetime.combine(end, datetime.max.time())
     
-    query = (
-        _supabase.table("weather")
-        .select("*")
-        .in_("region_name", regions_list)
-        .gte("datetime", start_dt.isoformat())
-        .lte("datetime", end_dt.isoformat())
-        .order("datetime", desc=False)
-    )
+    if regions:
+        regions_list = list(regions)
+        query = (
+            _supabase.table("weather")
+            .select("*")
+            .in_("region_name", regions_list)
+            .gte("datetime", start_dt.isoformat())
+            .lte("datetime", end_dt.isoformat())
+            .order("datetime", desc=False)
+        )
+    else:
+        # If no regions specified, fetch all
+        query = (
+            _supabase.table("weather")
+            .select("*")
+            .gte("datetime", start_dt.isoformat())
+            .lte("datetime", end_dt.isoformat())
+            .order("datetime", desc=False)
+        )
     data = _fetch_all_pages(_supabase, "weather", query)
     return pd.DataFrame(data)

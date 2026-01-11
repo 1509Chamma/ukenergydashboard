@@ -254,14 +254,53 @@ def update_and_upload_demand_data():
     # Remove metadata columns that start with underscore (e.g., _id, _full_text)
     df = df[[col for col in df.columns if not col.startswith('_')]]
     
-    # Map settlement_date to datetime for consistency with schema
-    if 'settlement_date' in df.columns:
+    # Create datetime from settlement_date and settlement_period
+    # settlement_period ranges from 1-48, each period is 30 minutes
+    # period 1 = 00:00-00:30, period 2 = 00:30-01:00, etc.
+    if 'settlement_date' not in df.columns or 'settlement_period' not in df.columns:
+        print(f"Error: Required columns not found. Available: {df.columns.tolist()}")
+        print("Skipping demand data upload.")
+        return
+    
+    try:
+        # Convert settlement_date to datetime
         df['datetime'] = pd.to_datetime(df['settlement_date'])
-        df = df.drop(columns=['settlement_date'])
+        
+        # Add settlement period offset (each period is 30 minutes, starting from period 1)
+        # Period 1 starts at 00:00, period 2 at 00:30, etc.
+        df['datetime'] = df['datetime'] + pd.to_timedelta((df['settlement_period'] - 1) * 30, unit='minutes')
+        
+        # Drop original columns
+        df = df.drop(columns=['settlement_date', 'settlement_period'])
+    except Exception as e:
+        print(f"Error creating datetime from settlement_date and settlement_period: {e}")
+        return
+    
+    # Keep only columns that match the historic_demand schema
+    schema_cols = {
+        'datetime', 'nd', 'tsd', 'england_wales_demand',
+        'embedded_wind_generation', 'embedded_wind_capacity',
+        'embedded_solar_generation', 'embedded_solar_capacity',
+        'non_bm_stor', 'pump_storage_pumping', 'scottish_transfer',
+        'ifa_flow', 'ifa2_flow', 'britned_flow', 'moyle_flow',
+        'east_west_flow', 'nemo_flow', 'nsl_flow', 'eleclink_flow',
+        'viking_flow', 'greenlink_flow'
+    }
+    df = df[[col for col in df.columns if col in schema_cols]]
+    
+    # Filter out rows with null datetime
+    df = df.dropna(subset=['datetime'])
+    
+    if df.empty:
+        print("No valid demand records after filtering null datetimes.")
+        return
     
     # Fill NaN only in numeric columns
     numeric_cols = df.select_dtypes(include=['number']).columns
     df[numeric_cols] = df[numeric_cols].fillna(0)
+    
+    # Convert datetime to ISO format string for JSON serialization
+    df['datetime'] = df['datetime'].dt.strftime('%Y-%m-%dT%H:%M:%S')
     
     supabase = get_supabase()
     records = df.to_dict(orient='records')

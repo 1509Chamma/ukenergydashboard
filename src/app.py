@@ -7,6 +7,7 @@ from data.loaders import fetch_demand_range, fetch_carbon_range, fetch_weather_r
 from components.sidebar import render_sidebar
 from components.charts import demand_chart, carbon_chart, weather_charts, summary_kpis, multi_series_chart, uk_carbon_map, explanatory_summary, uk_import_dependency, carbon_heatmap, generation_mix_stacked_bar
 from data_update import update_and_upload_carbon_data, update_and_upload_weather_data, update_and_upload_demand_data
+from components.time_series_experimentation import render_time_series_experimentation
 
 load_dotenv()
 
@@ -223,19 +224,11 @@ elif st.session_state.active_tab == 2:  # Weather
     exploratory_scatter_plot(weather_df, demand_df, carbon_df)
 
 elif st.session_state.active_tab == 3:  # Experimentation
-    st.subheader("Experimentation")
-    st.info("This tab is for experimental features and analysis.")
-    
-    # Placeholder for experimental content
-    st.markdown("### Available Data")
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.metric("Demand Records", len(demand_df))
-    with col2:
-        st.metric("Carbon Records", len(carbon_df))
-    with col3:
-        st.metric("Weather Records", len(weather_df))
-    
-    st.divider()
-    st.markdown("### Custom Analysis")
-    st.write("Add your experimental visualizations and analysis here.")
+    try:
+        render_time_series_experimentation(supabase, min_date, max_date)
+    except ImportError as e:
+        st.error(f"Failed to import experimentation module: {e}")
+    except Exception as e:
+        st.error(f"Error in experimentation tab: {e}")
+        import traceback
+        st.write(traceback.format_exc())
