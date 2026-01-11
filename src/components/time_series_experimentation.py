@@ -140,101 +140,120 @@ def render_time_series_experimentation(supabase, min_date, max_date):
         st.session_state.experiment_demand_df = pd.DataFrame()
         st.session_state.experiment_carbon_df = pd.DataFrame()
         st.session_state.experiment_weather_df = pd.DataFrame()
+        st.session_state.selected_exp_region = None
     
-    col1, col2 = st.columns([2, 8])
+    # Region selector and load button
+    col1, col2 = st.columns([2, 3])
+    
+    with col1:
+        # Fetch available regions
+        try:
+            regions_query = supabase.table("carbon_intensity").select("region_name").execute()
+            available_regions = sorted(set([r.get("region_name") for r in regions_query.data if r.get("region_name")]))
+        except:
+            available_regions = []
+        
+        selected_region = st.selectbox(
+            "Select Region", 
+            available_regions,
+            key="exp_region_select",
+            help="Select a region to load data for experimentation"
+        )
     
     # Load data only when button is clicked
-    with col1:
-        if st.button("📊 Load Data", key="load_exp_data", use_container_width=True):
-            from data.loaders import fetch_demand_range, fetch_carbon_range, fetch_weather_range
-            from datetime import datetime as dt
-            
-            with st.spinner("Loading data..."):
-                # Fetch demand data
-                st.session_state.experiment_demand_df = fetch_demand_range(supabase, min_date, max_date)
-                
-                # Query all unique regions from carbon_intensity table
-                try:
-                    regions_query = supabase.table("carbon_intensity").select("region_name").execute()
-                    all_regions = tuple(set([r.get("region_name") for r in regions_query.data if r.get("region_name")]))
-                    if not all_regions:
-                        all_regions = ()
-                except Exception as e:
-                    st.error(f"Could not fetch regions: {str(e)}")
-                    all_regions = ()
-                
-                # Fetch carbon and weather for all available regions
-                if all_regions:
-                    st.session_state.experiment_carbon_df = fetch_carbon_range(supabase, min_date, max_date, all_regions)
-                    st.session_state.experiment_weather_df = fetch_weather_range(supabase, min_date, max_date, all_regions)
-                else:
-                    st.session_state.experiment_carbon_df = pd.DataFrame()
-                    st.session_state.experiment_weather_df = pd.DataFrame()
-                
-                st.session_state.experiment_data_loaded = True
-    
     with col2:
-        if st.session_state.experiment_data_loaded:
-            demand_count = len(st.session_state.experiment_demand_df)
-            carbon_count = len(st.session_state.experiment_carbon_df)
-            weather_count = len(st.session_state.experiment_weather_df)
-            st.markdown(f"✓ **Data loaded:** {demand_count} demand | {carbon_count} carbon | {weather_count} weather records")
-        else:
-            st.markdown("Click **Load Data** to start")
+        if st.button("Load Data", key="load_exp_data", use_container_width=True, type="primary"):
+            if not selected_region:
+                st.error("Please select a region first")
+            else:
+                from data.loaders import fetch_demand_range, fetch_carbon_range, fetch_weather_range
+                
+                with st.spinner(f"Loading data for {selected_region}..."):
+                    # Fetch demand data (no region filter)
+                    st.session_state.experiment_demand_df = fetch_demand_range(supabase, min_date, max_date)
+                    
+                    # Fetch carbon and weather for selected region only
+                    st.session_state.experiment_carbon_df = fetch_carbon_range(supabase, min_date, max_date, (selected_region,))
+                    st.session_state.experiment_weather_df = fetch_weather_range(supabase, min_date, max_date, (selected_region,))
+                    st.session_state.selected_exp_region = selected_region
+                    st.session_state.experiment_data_loaded = True
+                
+                st.success(f"Data loaded for {selected_region}")
     
     if not st.session_state.experiment_data_loaded:
+        st.info("Select a region and click **Load Data** to begin experimentation.")
         return
+    
+    st.divider()
     
     # Use cached data
     demand_df = st.session_state.experiment_demand_df
     carbon_df = st.session_state.experiment_carbon_df
     weather_df = st.session_state.experiment_weather_df
     
-    st.divider()
-    
-    # Combine datasets
+    # Combine datasets - start with demand as base
     combined_df = demand_df.copy() if not demand_df.empty else pd.DataFrame()
     
-    # Rename datetime column if it exists and is named differently
-    if not combined_df.empty and 'datetime' not in combined_df.columns:
-        # Try to find a timestamp column
-        timestamp_cols = combined_df.select_dtypes(include=['datetime64']).columns
-        if len(timestamp_cols) > 0:
-            combined_df = combined_df.rename(columns={timestamp_cols[0]: 'datetime'})
+    # Ensure datetime column exists
+    if not combined_df.empty:
+        if 'datetime' not in combined_df.columns:
+            timestamp_cols = combined_df.select_dtypes(include=['datetime64']).columns
+            if len(timestamp_cols) > 0:
+                combined_df = combined_df.rename(columns={timestamp_cols[0]: 'datetime'})
+        
+        # Convert datetime to ensure consistency
+        combined_df['datetime'] = pd.to_datetime(combined_df['datetime'])
     
+    # Merge carbon data using outer join to preserve all demand data
     if not carbon_df.empty:
-        # Aggregate carbon by datetime (average only numeric columns)
+        if 'datetime' not in carbon_df.columns:
+            timestamp_cols = carbon_df.select_dtypes(include=['datetime64']).columns
+            if len(timestamp_cols) > 0:
+                carbon_df = carbon_df.rename(columns={timestamp_cols[0]: 'datetime'})
+        
+        carbon_df['datetime'] = pd.to_datetime(carbon_df['datetime'])
         numeric_carbon_cols = carbon_df.select_dtypes(include=[np.number]).columns.tolist()
         agg_dict = {col: 'mean' for col in numeric_carbon_cols}
         
         carbon_agg = carbon_df.groupby('datetime').agg(agg_dict).reset_index()
         carbon_agg.columns = ['datetime'] + [f'carbon_{c}' for c in carbon_agg.columns[1:]]
         
-        if not combined_df.empty and 'datetime' in combined_df.columns:
-            combined_df = pd.merge(combined_df, carbon_agg, on='datetime', how='inner')
-        elif combined_df.empty:
+        if not combined_df.empty:
+            combined_df = pd.merge(combined_df, carbon_agg, on='datetime', how='outer')
+        else:
             combined_df = carbon_agg
     
+    # Merge weather data using outer join
     if not weather_df.empty:
-        # Aggregate weather by datetime (average only numeric columns)
+        if 'datetime' not in weather_df.columns:
+            timestamp_cols = weather_df.select_dtypes(include=['datetime64']).columns
+            if len(timestamp_cols) > 0:
+                weather_df = weather_df.rename(columns={timestamp_cols[0]: 'datetime'})
+        
+        weather_df['datetime'] = pd.to_datetime(weather_df['datetime'])
         numeric_weather_cols = weather_df.select_dtypes(include=[np.number]).columns.tolist()
         agg_dict = {col: 'mean' for col in numeric_weather_cols}
         
         weather_agg = weather_df.groupby('datetime').agg(agg_dict).reset_index()
         weather_agg.columns = ['datetime'] + [f'weather_{c}' for c in weather_agg.columns[1:]]
         
-        if not combined_df.empty and 'datetime' in combined_df.columns:
-            combined_df = pd.merge(combined_df, weather_agg, on='datetime', how='inner')
-        elif combined_df.empty:
+        if not combined_df.empty:
+            combined_df = pd.merge(combined_df, weather_agg, on='datetime', how='outer')
+        else:
             combined_df = weather_agg
     
     if combined_df.empty:
-        st.warning("No data available for experimentation. Please select a date range with data.")
+        st.warning("No data available for experimentation. Please load data first.")
         return
     
-    combined_df = combined_df.dropna()
+    # Sort by datetime and drop duplicates
+    combined_df = combined_df.sort_values('datetime').drop_duplicates(subset=['datetime'])
     
-    # Get only numeric columns
+    # Fill missing values for numeric columns with forward fill then backward fill
+    numeric_cols_all = combined_df.select_dtypes(include=[np.number]).columns.tolist()
+    combined_df[numeric_cols_all] = combined_df[numeric_cols_all].fillna(method='ffill').fillna(method='bfill').fillna(0)
+    
+    # Get only numeric columns for modeling
     numeric_cols = combined_df.select_dtypes(include=[np.number]).columns.tolist()
     if 'datetime' in numeric_cols:
         numeric_cols.remove('datetime')
