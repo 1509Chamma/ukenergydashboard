@@ -3,14 +3,15 @@ import threading
 from datetime import datetime, timezone
 from dotenv import load_dotenv
 from supabase_client import get_supabase
-from data.loaders import fetch_demand_range, fetch_carbon_range, fetch_weather_range, fetch_date_bounds
+from data.loaders import fetch_demand_range, fetch_carbon_range, fetch_weather_range, fetch_date_bounds, should_run_update
 from components.sidebar import render_sidebar
 from components.charts import demand_chart, carbon_chart, weather_charts, summary_kpis, multi_series_chart, uk_carbon_map, explanatory_summary, uk_import_dependency, carbon_heatmap, generation_mix_stacked_bar
 from data_update import update_and_upload_carbon_data, update_and_upload_weather_data, update_and_upload_demand_data
+from components.time_series_experimentation import render_time_series_experimentation
 
 load_dotenv()
 
-# Background data update (non-blocking)
+# Background data update (non-blocking, once per day)
 def _run_data_updates():
     try:
         update_and_upload_carbon_data()
@@ -30,7 +31,10 @@ if "data_update_started" not in st.session_state:
     st.session_state.data_update_thread = None
     st.session_state.data_update_applied = False
 
-if not st.session_state.data_update_started:
+supabase = get_supabase()
+
+# Only run update if 24 hours have passed since last update (global check)
+if not st.session_state.data_update_started and should_run_update(supabase, hours_interval=24):
     st.session_state.data_update_thread = threading.Thread(target=_run_data_updates, daemon=True)
     st.session_state.data_update_thread.start()
     st.session_state.data_update_started = True
@@ -66,7 +70,6 @@ if "active_timerange" not in st.session_state:
     st.session_state.active_timerange = None
 if "active_tab" not in st.session_state:
     st.session_state.active_tab = 0
-supabase = get_supabase()
 
 st.set_page_config(page_title="Energy Dashboard", layout="wide")
 st.title("Energy Dashboard")
@@ -129,7 +132,7 @@ else:
     st.warning("Please select at least one region to view data.")
 
 # Custom persistent tabs
-TAB_NAMES = ["Summary", "Demand & Carbon", "Weather"]
+TAB_NAMES = ["Summary", "Demand & Carbon", "Weather", "Experimentation"]
 
 # Create tab-like buttons with CSS styling to match native tabs
 st.markdown("""
@@ -170,7 +173,7 @@ div.stButton {
 """, unsafe_allow_html=True)
 
 # Tab buttons in columns - wider for "Demand & Carbon"
-tab_cols = st.columns([1, 1.8, 1, 6])  # 3 tabs + spacer
+tab_cols = st.columns([1, 1.8, 1, 1.5, 5])  # 4 tabs + spacer
 for i, tab_name in enumerate(TAB_NAMES):
     with tab_cols[i]:
         if st.button(tab_name, key=f"tab_{i}"):
@@ -221,3 +224,13 @@ elif st.session_state.active_tab == 2:  # Weather
     st.divider()
     st.markdown("<h3 style='margin-bottom:0.5rem;'>Weather/Energy Exploratory Scatter Plot</h3>", unsafe_allow_html=True)
     exploratory_scatter_plot(weather_df, demand_df, carbon_df)
+
+elif st.session_state.active_tab == 3:  # Experimentation
+    try:
+        render_time_series_experimentation(supabase, min_date, max_date)
+    except ImportError as e:
+        st.error(f"Failed to import experimentation module: {e}")
+    except Exception as e:
+        st.error(f"Error in experimentation tab: {e}")
+        import traceback
+        st.write(traceback.format_exc())
