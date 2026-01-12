@@ -1,10 +1,11 @@
 # 1. Introduction
 
-![Ukenergydashboard](image.png)
+<img src="../assets/uk_energy_dashboard.png" alt="Uk Energy Dashboard">
 
-**Project Deployment:** [https://ukenergydashboard.streamlit.app](https://ukenergydashboard.streamlit.app)
-**Set-up Guide:** README.md
-**Assignment Brief:** documentation/assignment_brief.md
+
+**Project Deployment:** [https://ukenergydashboard.streamlit.app](https://ukenergydashboard.streamlit.app) <br>
+**Set-up Guide:** README.md <br>
+**Assignment Brief:** documentation/assignment_brief.md <br>
 
 ---
 
@@ -14,7 +15,8 @@ The UK energy system is undergoing a significant structural transition, moving a
 
 At the same time, there is a large amount of publicly available data that is scattered across multiple platforms and is not centralised into a single view capable of providing a holistic understanding of how different variables interact. Organisations such as the National Energy System Operator (NESO) provide multiple high-quality datasets and APIs for electricity demand, generation, and system operation (NESO, 2024). However, these datasets are published separately, meaning that non-technical users are unable to easily derive insights into how variables such as electricity demand, carbon intensity, and generation mix relate to one another.
 
-![Home page of NESO](assets/neso_home_page.png)
+<img src="../assets/neso_home_page.png" alt="Home page of NESO">
+
 
 As a result, users who wish to explore how electricity demand, carbon intensity, generation mix, and environmental factors interact must either rely on static summaries or perform significant preprocessing themselves. This project is motivated by the observation that data accessibility does not necessarily imply the ability to derive analytical insight, particularly in the context of exploratory data analysis.
 
@@ -36,7 +38,7 @@ Although publicly available UK energy data continues to increase in availability
 
 EnergyDashboard provides a near real-time overview of the UK electricity system, with a clear emphasis on short-term operational indicators such as demand, generation mix, and system status. The platform is effective at communicating current system conditions to a broad audience but lacks the analytical depth that may be of interest to researchers or analysts.
 
-![EnergyDashboard home page](assets/energy_dashboard.png)
+<img src="../assets/energy_dashboard.png" alt="EnergyDashboard">
 
 The dashboard is primarily operational rather than analytical. In addition, access to historical data is limited, and users are largely restricted to viewing short-term or current system behaviour. There is minimal support for custom filtering, cross-dataset comparison, or exploratory analysis across time and regions. As a result, the platform is well suited for real-time operational monitoring but lacks historical depth and exploratory capability.
 
@@ -46,7 +48,7 @@ The dashboard is primarily operational rather than analytical. In addition, acce
 
 The monthly statistics published by NESO provide credible summaries of long-term trends within the UK energy system (NESO, 2024). These reports aggregate demand, generation, and system performance metrics into structured visualisations suitable for official reporting and retrospective analysis. However, these visualisations are not updated in real time and provide limited flexibility for custom analysis.
 
-![NESO monthly reports](assets/neso_monthly_reports.png)
+<img src="../assets/neso_monthly_reports.png" alt="Great Britain’s Monthly Energy Statistics (NESO)">
 
 While this approach ensures that insights are consistent and reliable, it limits interactivity and fine-grained time-series exploration. This constrains the ability of users to generate insights across specific regions, time windows, or in combination with external datasets such as weather data.
 
@@ -65,7 +67,7 @@ This project is intentionally positioned as an interactive and exploratory dashb
 
 Rather than directly competing with existing platforms, this project aims to fill a gap by offering a free, open-source tool that enables users to engage directly with up-to-date UK energy data.
 
-![Overview of the solution](assets/solution_overview.svg)
+<img src="../assets/solution_overview.svg" alt="Overview of the solution">
 
 ---
 
