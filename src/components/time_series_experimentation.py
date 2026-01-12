@@ -14,6 +14,44 @@ from plotly.subplots import make_subplots
 
 TIMEOUT_SECONDS = 30 * 60  # 30 minutes
 
+def create_linear_regression_plot(y_test, y_pred, target_col):
+    """Create scatter plot with regression line for linear regression"""
+    fig = go.Figure()
+    
+    # Add actual vs predicted scatter
+    fig.add_trace(go.Scatter(
+        x=y_test,
+        y=y_pred,
+        mode='markers',
+        name='Predictions',
+        marker=dict(size=8, color='rgba(0, 150, 255, 0.6)', line=dict(width=1, color='blue')),
+        hovertemplate='Actual: %{x:.2f}<br>Predicted: %{y:.2f}<extra></extra>'
+    ))
+    
+    # Add perfect fit line (y=x)
+    min_val = min(y_test.min(), y_pred.min())
+    max_val = max(y_test.max(), y_pred.max())
+    fig.add_trace(go.Scatter(
+        x=[min_val, max_val],
+        y=[min_val, max_val],
+        mode='lines',
+        name='Perfect Fit',
+        line=dict(color='red', dash='dash', width=2),
+        hovertemplate='%{x:.2f}<extra></extra>'
+    ))
+    
+    fig.update_layout(
+        title=f'Linear Regression: Actual vs Predicted {target_col}',
+        xaxis_title=f'Actual {target_col}',
+        yaxis_title=f'Predicted {target_col}',
+        height=600,
+        hovermode='closest',
+        template='plotly_dark'
+    )
+    
+    return fig
+
+
 def create_interactive_forecast_chart(combined_df, target_col, y_test, y_pred, model, X_test, feature_cols):
     """Create interactive Plotly chart with predictions and forecast for next week"""
     
@@ -432,6 +470,13 @@ def render_time_series_experimentation(supabase, min_date, max_date):
                 hide_index=True
             )
     
+    # Method selection FIRST (so it's in session state for feature selection)
+    method = st.selectbox(
+        "Methodology",
+        ["Linear Regression", "Random Forest", "Correlation Analysis"],
+        key="exp_method"
+    )
+    
     # Feature and target selection
     col1, col2 = st.columns(2)
     
@@ -442,21 +487,24 @@ def render_time_series_experimentation(supabase, min_date, max_date):
     available_inputs = [f for f in numeric_cols if f != target_feature]
     
     with col2:
+        # Show different limits based on method selected
+        if method == 'Linear Regression':
+            limit_text = "(1 Input Feature for Linear Regression)"
+            max_sel = 1
+        else:
+            limit_text = "(Multiple features allowed)"
+            max_sel = len(available_inputs)
+        
+        st.markdown(f"**Input Features** {limit_text}")
         input_features = st.multiselect(
-            "Input Features", 
+            "Select features", 
             available_inputs,
-            default=available_inputs[:min(5, len(available_inputs))],
+            default=[available_inputs[0]] if available_inputs else [],
+            max_selections=max_sel,
             key="exp_inputs"
         )
         # Filter out target from input features if it somehow got selected
         input_features = [f for f in input_features if f != target_feature]
-    
-    # Method selection
-    method = st.selectbox(
-        "Methodology",
-        ["Linear Regression", "Random Forest", "Correlation Analysis"],
-        key="exp_method"
-    )
     
     # Run button
     if st.button("Run Experiment", key="run_exp"):
@@ -482,6 +530,10 @@ def render_time_series_experimentation(supabase, min_date, max_date):
                 progress_bar.progress(0.05)
                 
                 if method == "Linear Regression":
+                    if len(input_features) != 1:
+                        st.error("Linear Regression requires exactly 1 input feature.")
+                        return
+                    
                     metrics, y_pred, model = run_linear_regression(
                         X_train, X_test, y_train, y_test, progress_bar, status_text
                     )
@@ -493,12 +545,13 @@ def render_time_series_experimentation(supabase, min_date, max_date):
                     col2.metric("RMSE", f"{metrics['RMSE']:.2f}")
                     col3.metric("R²", f"{metrics['R²']:.3f}")
                     
-                    st.markdown("**Interactive Predictions & Forecast**")
-                    # Create interactive chart with forecast
-                    fig = create_interactive_forecast_chart(combined_df, target_feature, y_test, y_pred, model, X_test, input_features)
+                    st.markdown("**Scatter Plot: Actual vs Predicted**")
+                    fig = create_linear_regression_plot(y_test, y_pred, target_feature)
                     st.plotly_chart(fig, use_container_width=True)
                 
                 elif method == "Random Forest":
+                    st.info("ℹ️ **Exercise Overview**: Random Forest allows multiple input features and shows their predictive importance. This demonstrates which variables have the most predictive power for your target.")
+                    
                     metrics, y_pred, model, feature_importance = run_random_forest(
                         X_train, X_test, y_train, y_test, progress_bar, status_text
                     )
@@ -512,11 +565,6 @@ def render_time_series_experimentation(supabase, min_date, max_date):
                     # Feature importance
                     st.markdown("**Top 10 Important Features**")
                     st.dataframe(feature_importance, use_container_width=True)
-                    
-                    st.markdown("**Interactive Predictions & Forecast**")
-                    # Create interactive chart with forecast
-                    fig = create_interactive_forecast_chart(combined_df, target_feature, y_test, y_pred, model, X_test, input_features)
-                    st.plotly_chart(fig, use_container_width=True)
             
             elif method == "Correlation Analysis":
                 progress_bar.progress(0.5)
