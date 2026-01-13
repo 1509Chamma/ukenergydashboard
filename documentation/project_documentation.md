@@ -1,6 +1,6 @@
 # 1. Introduction
 
-<img src="../assets/uk_energy_dashboard.png" alt="Uk Energy Dashboard">
+<img src="../assets/uk_energy_dashboard.png" alt="Uk Energy Dashboard" >
 
 
 **Project Deployment:** [https://ukenergydashboard.streamlit.app](https://ukenergydashboard.streamlit.app) <br>
@@ -68,6 +68,53 @@ This project is intentionally positioned as an interactive and exploratory dashb
 Rather than directly competing with existing platforms, this project aims to fill a gap by offering a free, open-source tool that enables users to engage directly with up-to-date UK energy data.
 
 <img src="../assets/solution_overview.svg" alt="Overview of the solution">
+
+
+## 1.5 Objectives & Scope
+
+To fulfil the gaps identified in the analysis above, a set of core objectives and additional optional objectives are defined.
+
+### Core Objectives
+
+1. **Multi-source Data Integration**
+
+   > Integrate electricity demand, generation mix, power flow, carbon intensity, and weather data into a single platform. Data should cover the period from 01/01/2020 to the latest available data point.
+
+2. **Reliable Data Storage**
+
+   > Store data in a remote relational database with clearly defined schemas and logic to rerun ingestion when new data becomes available.
+
+3. **Interactive Time-Series Exploration**
+
+   > Visualise data using time-series plots that support zooming, panning, and comparison of multiple variables within a single view.
+
+4. **Regional and Temporal Exploration**
+
+   > Allow users to filter data by region and date range, supporting both single and multiple region selection, as well as quick-select options such as the last 7, 30, or 90 days.
+
+5. **Summary Statistics**
+
+   > Provide summary statistics for the selected data, including metrics such as average, minimum, maximum, and trend, accompanied by a time-series plot for the selected period.
+
+6. **Data-Driven Visualisations**
+
+   > Use appropriate visualisations such as stacked bar charts, heatmaps, annotated geographical maps, diverging horizontal bar charts, and scatter plots to highlight patterns within the data.
+
+---
+
+### Additional Optional Objectives
+
+7. **Deployment to Remote Hosting**
+
+   > Deploy the dashboard to a cloud-based hosting platform for public access via a shareable URL, ensuring the deployed version mirrors local execution behaviour.
+
+8. **Experimental Forecasting Tab**
+
+   > Introduce an experimental section allowing users to select input features and targets to perform short-horizon forecasting using simple machine learning models, including regression and tree-based approaches.
+
+9. **Visualisation of Experimental Results**
+
+   > Present model performance metrics such as MAE, RMSE, and R². Visualise predicted versus true values and model performance over a 180-day window, and allow users to generate a 7-day future prediction.
 
 ---
 
