@@ -14,17 +14,19 @@
 
 ## 1.1 Background & Motivation
 
-The UK energy system is undergoing a significant structural transition, moving away from non-renewable sources of energy in order to achieve the net zero target proposed by the government (Department for Business, Energy & Industrial Strategy, 2021). This transition has led to noticeable changes in electricity demand patterns. As wind and solar energy generation are dependent on natural factors beyond direct human control, this has introduced increased volatility into electricity generation capabilities. Despite this, the UK was able to achieve 50.4% renewable electricity generation in the previous year (RenewableUK, 2024). While achieving net zero remains a work in progress, enabling people with tools to explore the problem can help raise awareness and understanding.
+UK systems are undergoing a serious structural reorganisation, moving away from non-renewable resources and towards net zero with increasing complexity for all electricity operations (Department for Business, Energy & Industrial Strategy, 2021). Changes to electricity consumption patterns have been witnessed because of this transformation. And since wind and solar energy production can only be managed by some non-human factors or other, that has made electricity generation abilities very variable indeed. Nevertheless, the UK surpassed 50.4% renewable electricity generation in the previous year (RenewableUK, 2024). 
 
-At the same time, there is a large amount of publicly available data that is scattered across multiple platforms and is not centralised into a single view capable of providing a holistic understanding of how different variables interact. Organisations such as the National Energy System Operator (NESO) provide multiple high-quality datasets and APIs for electricity demand, generation, and system operation (NESO, 2024). However, these datasets are published separately, meaning that non-technical users are unable to easily derive insights into how variables such as electricity demand, carbon intensity, and generation mix relate to one another.
+Net zero may remain a work in progress, but empowering people with tools to investigate the issue can help raise awareness and understanding. On the other hand, many pieces of publicly available data are scattered across platforms and do not coalesce into one view capable of providing a holistic view of how individual variables interact. One example is the National Energy System Operator (NESO), which has many top-quality datasets and APIs for electricity demand, generation, and system operation (NESO, 2024). Yet these datasets are separately set up and published, leaving nontechnical audiences without an easy way to gain a look at how electricity demand, carbon intensity and generation mix are related.
 
+<br> 
+<p align="center"> 
+    <img src="../assets/neso_home_page.png" alt="Home page of NESO" width="50%" height="50%"> 
+</p> 
 <br>
-<p align="center">
-    <img src="../assets/neso_home_page.png" alt="Home page of NESO" width="50%" height="50%">
-</p>
-<br>
 
-As a result, users who wish to explore how electricity demand, carbon intensity, generation mix, and environmental factors interact must either rely on static summaries or perform significant preprocessing themselves. This project is motivated by the observation that data accessibility does not necessarily imply the ability to derive analytical insight, particularly in the context of exploratory data analysis.
+Therefore, for anyone intending to examine the interaction between electricity demand, carbon intensity, generation mix, and environmental factors, users will have to find either static summaries or perform significant preprocessing by themselves. This piece is inspired largely by the idea that data accessibility does not imply the ability to generate analytical insight, specifically in exploratory data analysis.
+
+
 
 ---
 
@@ -32,9 +34,9 @@ As a result, users who wish to explore how electricity demand, carbon intensity,
 
 The central problem addressed by this project is:
 
-> *How can multiple UK energy and environmental datasets be integrated into a single interactive system that allows intuitive exploration of energy and environmental patterns and trends?*
+> How can multiple UK energy and environmental datasets be integrated into a single interactive system that allows intuitive exploration of energy and environmental patterns and trends? 
 
-Although publicly available UK energy data continues to increase in availability, these sources remain fragmented and often exist at differing temporal resolutions, requiring substantial preprocessing and technical knowledge (NESO, 2024). This project aims to address this problem by providing an interactive dashboard that integrates electricity demand, carbon intensity, and weather data into a single system for exploratory analysis. The system also supports exploration of regions both in isolation and in combination.
+Although publicly available UK energy data continues to increase in availability (NESO, 2024), these sources remain fragmented and often exist at differing temporal resolutions, requiring substantial preprocessing and technical knowledge. This project aims to address this problem by providing an interactive dashboard that integrates electricity demand, carbon intensity, and weather data into a single system for exploratory analysis. The system also supports exploration of regions both in isolation and in combination.
 
 ---
 
@@ -42,7 +44,7 @@ Although publicly available UK energy data continues to increase in availability
 
 ### EnergyDashboard (energydashboard.co.uk)
 
-EnergyDashboard provides a near real-time overview of the UK electricity system, with a clear emphasis on short-term operational indicators such as demand, generation mix, and system status. The platform is effective at communicating current system conditions to a broad audience but lacks the analytical depth that may be of interest to researchers or analysts.
+EnergyDashboard provides a near real-time view of the UK electricity system with better visibility into its energy usage and the specific short-term operational aspects: demand, generation mix, actual activity, generation mix, and system status. The system's current state of play seems to be relatively useful to the general public, but the system is not rich and not so analytical as to be of interest to researchers or analysts.
 
 <br>
 <p align="center">
@@ -50,13 +52,13 @@ EnergyDashboard provides a near real-time overview of the UK electricity system,
 </p>
 <br>
 
-The dashboard is primarily operational rather than analytical. In addition, access to historical data is limited, and users are largely restricted to viewing short-term or current system behaviour. There is minimal support for custom filtering, cross-dataset comparison, or exploratory analysis across time and regions. As a result, the platform is well suited for real-time operational monitoring but lacks historical depth and exploratory capability.
+The dashboard is mostly operational rather than analytical, more for functions than anything analytical. Moreover, available historical data is restricted and only allows the user to see short-term or current system responses. There is very little custom filtering, cross-dataset comparison, and exploratory analysis by time and place. Accordingly, the platform serves well for monitoring operations in near real time but is missing a history of exploration.
 
 ---
 
 ### Great Britain’s Monthly Energy Statistics (NESO)
 
-The monthly statistics published by NESO provide credible summaries of long-term trends within the UK energy system (NESO, 2024). These reports aggregate demand, generation, and system performance metrics into structured visualisations suitable for official reporting and retrospective analysis. However, these visualisations are not updated in real time and provide limited flexibility for custom analysis.
+Data at NESO provide credible summaries of long-term trends within the UK energy system through the monthly statistics published there (NESO, 2024). Such reports summarize demand, generation, and system performance statistics into structured visualisations suitable for official reporting and retrospective analysis. But these projections are static and not easily up-to-date and do not allow for customized analysis.
 
 <br>
 <p align="center">
@@ -64,28 +66,23 @@ The monthly statistics published by NESO provide credible summaries of long-term
 </p>
 <br>
 
-While this approach ensures that insights are consistent and reliable, it limits interactivity and fine-grained time-series exploration. This constrains the ability of users to generate insights across specific regions, time windows, or in combination with external datasets such as weather data.
+Although this helps to guarantee consistent and trustworthy insights, it restricts interactivity and narrow exploration into time-series phenomena. This limits the capacity of users to compute insights with the aid of specific regions and data, over the time windows, or with external data sources like weather data.
 
-Across both platforms, the primary limitation is not data quality but the range of interactions available to the user and the extent of data integration. EnergyDashboard excels at near real-time operational indicators, while NESO’s monthly statistics provide historical depth and reliability at the expense of interactivity. Neither platform integrates multiple datasets into a single interactive system designed for exploratory visual analysis.
+The main limitation across the two platforms is not on quality of the data but on the freedom of the user to interact with and the scale of data input into it. EnergyDashboard does best around operational data real time while NESO’s monthly statistics give historical depth for reliability, but not interactivity. The one platform does not combine multiple datasets in a single interaction system, which is meant for exploratory visualizations.
 
 ---
 
-## 1.4 Positioning of This Project
+## 1.4 The Positioning of This Project
+This project will be presented as an interactive and exploratory dashboard rather than a real-time monitoring or forecasting tool. Its main contributions are:
 
-This project is intentionally positioned as an interactive and exploratory dashboard rather than a real-time monitoring or forecasting tool. Its primary contributions are:
+- Combined electricity demand, generation mix, power flow, carbon intensity, and weather data into a single platform
+- Enable users to filter the data on region and selected time periods
+- Facilitating pattern discovery with more powerful visualisations
+- Offering system architecture for further development and expansion
 
-* Integrating electricity demand, generation mix, power flow, carbon intensity, and weather data into a single platform
-* Allowing users to filter data by region and selected time periods
-* Supporting pattern discovery through advanced visualisations
-* Providing a system architecture that supports future development and extension
+Instead of competing with the existing platforms, this project aims to fill a gap by offering a free, open-source tool that enables users to engage directly with up-to-date UK energy data.
 
-Rather than directly competing with existing platforms, this project aims to fill a gap by offering a free, open-source tool that enables users to engage directly with up-to-date UK energy data.
-
-<br>
-<p align="center">
-    <img src="../assets/solution_overview.svg" alt="Solution Overview">
-</p>
-<br>
+<br> <p align="center"> <img src="../assets/solution_overview.svg" alt="Solution Overview"> </p> <br>
 
 
 ## 1.5 Objectives & Scope
@@ -139,55 +136,51 @@ To fulfil the gaps identified in the analysis above, a set of core objectives an
 
 # 2. Design
 
-## 2.1 Design Objectives & Constraints
+## 2.1 Design Goals & Limits
 
-The design of the Uk energy board is guided by the need of having support  for an interactive tool for exploratory analysis of multiple related datasets in one single platform whilst being easily reproducible maintainable and easy to extend future capabilties. Unlike operational monitoring system or predictive analytics platforms the aim of thsi system is to allow users to investigate patterns, trends and relattionships across many different regiosn and time periods.
+The UK Energy Dashboard design is informed by the requirement to provide an interactive interface for exploratory study of a cluster of related datasets to be run within a single platform and must be easy to reproduce, maintainable for further possibilities in future projects and add. Unlike other platforms that use operational monitoring systems or predictive analytics toolkits, we intend this system to enable users to analyze patterns, trends, or relationships across different regions and time frames.
 
-Keeping this in mind here are some constrainst that will inform the design of this application:
-- All the datasets are observational (missing data if measuirng instruments are down)
-- Different temporal resolution and update frequencies
-- The requirement for clean historical data (2020 onwards per Objective 1.5.1)
-- The requirement for deployment alongside local set-ups
+In this regard, the restrictions below shape the design approach of this application:
 
-Theese constraints have motivated a modular streamlit application with a remote relational database that priortises user interactivity over computational complexity.
+- All the datasets are observational (missing data may exist if measuring instruments are unavailable).
+- Varying temporal resolutions and update frequencies are present in the data types.
+- Requirement of clean historical data (2020 onwards for Objective 1.5.1).
+- Deployment requirement concurrent with local setups.
 
----
-
-## 2.2 High-level System Architechture
-
-The systems aime to adopt a layered archiechture that seperates different functioanlties such as data ingestion, data validation, database storage, application logic and UI. This allows for the isolation of different funtionalties which allows for easier maintainabilty and extension of functionality in the future.
-
-<p align="center">
-    <img src="../assets/high_level_system_architechture.svg" alt="High level system architechture" >
-</p>
-
-At the high level the system consists of the following system componenets:
-- External data sources
-- Autoamted ingestion and validation layer
-- Reliable Relational Database
-- Application layer for data query and state managment 
-- an interactive UI for the dashboard 
-
-One of the key considerations is the use of a relational database so that the dashboard does not have to rely on external APIs which can be subject to rate limits and latency. Instead the use of the relational database (Supabase) allows all visulisations to come from validated data that follow a consistent schema which overal prevents user experience from being degraded if external API fail.
-
-To support a much smoother UX the application aims to make use of query-level caching with a time-to-live(TTL) mechanism ehich reduce the amount of redundant DB reads when visualising differnt plots or switching between tabs which will improve the applications responsivness to the users interaction making the experience much better and computationaly effecient.
-
-Another consideration is making use of pagination logic when retrieving data for a long period of time. This ensures that results are not truncated over long historacl time period queries and also make sure that the Supabase client does not exceed the platform imposed limits.
-
-To ensure that data is up to date a background data update mechanism is to be implmented so that new data can be added whenever the application is started to maintain the database. This background process should run independent of the UI to allow the user to use the application while data is refreshed. Once the data refresh is complete any cached query results are cleared and the new data is loaded to allow for the user to interact with the latest data
-
-Overall this architechture ensures that the dashboard only operates on validated consistent data while remaining responsive. 
-
-The figure above demonstrates the high-level system architechture highlighting the flow of data from external sources to being validated and then acessible to the user via an interactive UI.
+The limitations are what prompted a modular Streamlit application to implement a remote relational database that enables the
 
 ---
 
-## 2.3 Abstraction & Decomposition 
+## 2.2 High-level System Architecture
 
-To manage the complexity of the application and simplify the UI abstraction techniques and decompistion techniques have been applied on the system level for the design of this application. 
+We need to adopt a layered architecture which separates different functionalities such as data ingestion, data validation, database storage, application logic, and the UI. This separation allows us to isolate different functions more easily, which is quite useful in later maintenance.
 
+<p align="center"> <img src="../assets/high_level_system_architechture.svg" alt="High level system architecture"> </p> <br> 
 
-At the user level, abstraction has been applied to ensure that the interaction a user has is limited to high-level analytical concepts such as time ranges, geographic regions, and energy metrics. The user is abstracted away from the low-level details such as the database schemas, API specefic details. For example whwn a user wants to select a time range for a certain region the user does not have to construct SQL query but rather filter through the data via an intuitive UI componnents. This allows non-technical user to make use of the system and explore the different tools without having technical abilty as the limiting factor.
+From a high-level perspective the system comprises the following components: 
+- External data sources 
+- Automated ingestion and validation layer 
+- Reliable relational database 
+- Data querying and state management on the application layer 
+- Interactive dashboard UI
+
+One consideration is that the dashboard be created within a relational database which eliminates the dependence on third party APIs, which are subject to rate limits and latency. Instead, one relies on a relational database (Supabase) to facilitate the development of all visualisations from validated data and using a consistent schema. It prevents a degradation of the overall user experience due to external APIs failing, or being unavailable.
+
+The application relies on query-level caching along with a time-to-live (TTL) strategy in order to provide a better user experience. It minimises redundant database reads when visualizing different plots or changing tabs, increasing responsiveness and computational performance.
+
+There is also consideration of pagination logic in terms of access to the data over long timescales. This enables query results to never be truncated for large historical ranges and prevents the Supabase client from exceeding any platform-supplied limits.
+
+A background data update mechanism also allows new data to be imported when a new application is launched, keeping the data fresh. This process will be independent of the UI, enabling the user to interact with the application while refreshing the data. With the updated data the cached results are removed and the dashboard refreshes with the latest data.
+
+All in all, this layout allows you to operate only on data with solid and consistent validation while remaining responsive. The above system-level architecture is depicted, showing how the data is input from various external sources and passed through validation and storage before being accessed using the interactive UI.
+
+---
+
+## 2.3 Abstraction & Decomposition
+
+To manage application complexity and simplify user interaction, abstraction and decomposition techniques are applied at the system level.
+
+At the user level, abstraction ensures that interactions are limited to high-level analytical concepts such as time ranges, geographic regions, and energy metrics. Users are abstracted away from low-level implementation details such as database schemas and API-specific parameters. For example, when selecting a time range for a region, users do not construct SQL queries but instead interact with intuitive UI components. This allows non-technical users to explore the system without technical ability being a limiting factor.
 
 <br>
 <p align="center">
@@ -195,15 +188,13 @@ At the user level, abstraction has been applied to ensure that the interaction a
 </p>
 <br>
 
-The figure above illustrates how data handeling at the low-level is abstracted away from the UI
+The figure above illustrates how low-level data handling is abstracted away from the UI.
 
+At the application level, data access, preprocessing, and transformation are encapsulated within dedicated data loader components. This allows the application to receive data in a clean, structured format rather than raw API responses. As a result, changes to data source formats or storage schemas do not affect the UI or visualisations.
 
-At the application level, the seperate data acess, preprocessing and transformation within encapsulated data loader components. This allows the application to recieve data in a cleanly structured manner rather than having to recieve the data in the form of a raw API response. This ensures that changes to the data sources formats or storage schemas do not affect the UI or any of the visulisations.
+The overall problem of implementing the dashboard is further addressed through decomposition. The system is divided into distinct functional components, each serving a specific purpose. These components are grouped by shared functionality and organised into modules to improve maintainability and enable future extension. For example, a data module may include components for data access, validation, and ingestion.
 
-The overall problem of implemting the dashboard is further addresed through the use of decomposition. The system is divided into distinct functional components that each serve a seperate purpose. Theese functional components are further divided and grouped by a shared system function and placed into modules to allow for better maintanibilty and extension of future work. For example a data modulel can have following functional componenets; data acess, validation, ingestion.
-
-
-Decomposition will also be applied on the UI level, where the visulisations will be grouped by the domain of the data rather than chart type. The dashboard will seperate views into distinct sections for electricty demand, carbon intensity & weather variables. This structure mirrors the underlying data decomposition and allows users to reason abou the different domains seperatly while maintaing a consistent interactive UI. This also prevents cocgnitve overload whn exploring data allowing them to explore different aspects of the energy system independetly.
+Decomposition is also applied at the UI level, where visualisations are grouped by data domain rather than chart type. The dashboard separates views into sections for electricity demand, carbon intensity, and weather variables. This structure mirrors the underlying data decomposition and allows users to reason about each domain independently while maintaining a consistent interactive experience. It also reduces cognitive overload by allowing focused exploration of individual aspects of the energy system.
 
 <br>
 <p align="center">
@@ -211,45 +202,44 @@ Decomposition will also be applied on the UI level, where the visulisations will
 </p>
 <br>
 
-The figure above demonstrates how the application is broken down into single-responsibilty components for easier testing and devlopment.
+The figure above demonstrates how the application is broken down into single-responsibility components to support easier testing and development.
 
+Decomposition enables incremental development and testing of individual components, reducing the risk of cascading failures. It also allows new features to be introduced with minimal refactoring, as components operate in isolation with well-defined behaviour.
 
-Decomposition will allow for incremental development and the testing of individual components whcih reduces the risk of having a chain of failures. Additionaly this allows for new features to be introduced without much refactoring to the old code as functional components work in isolation. This also allows for a better understanding of the system behaviour as each function has a well defined behaviour.
-
-Both abstraction & decomposition will ensure that the system remains as flexible as possible & maintainable. Theese design principles allow the dashboard to support complex exploratory analysis while maintaining a clear interactive UI for the users.
+Together, abstraction and decomposition ensure that the system remains flexible and maintainable while supporting complex exploratory analysis through a clear and intuitive user interface.
 
 ---
 
-## 2.4 Data Design 
+## 2.4 Data Design
 
-This project makes use of a remote relational database to store large validated  historical dataset whilst supporting interactive analysis at scale. A database-backed design was mainly chosen instead of a flat file on a local set up to ensure query perfomance and updatebality.
+This project uses a remote relational database to store large validated historical datasets while supporting interactive analysis at scale. A database-backed design was chosen instead of flat-file storage to ensure query performance and updateability.
 
-The data used in this project is mianly sourced form 2 providers each contributing differntly to the data richness of the uk energy system. 
+The data used in this project is sourced primarily from two providers, each contributing differently to the overall richness of the UK energy system data.
 
-For the electricity demand and system-level operation data is sources from the National Energy System Operator (NESO), the official legal body responsible for the uk electrical system. NESO also offers data for carbon intensity, generation mix & power flow. The data provided by NESO is authaurative and consistently structured. The data published has a sufficent temporal resolution and great historical depth. While the data is aggregated at regional level it is well suited to descriptive and comparitive analysis of the national energy demands.
+Electricity demand and system-level operational data are sourced from the National Energy System Operator (NESO), the official body responsible for the UK electricity system. NESO also provides data for carbon intensity, generation mix, and power flows. The data is authoritative, consistently structured, and offers sufficient temporal resolution and historical depth. Although the data is aggregated at regional level, it is well suited to descriptive and comparative analysis of national energy demand.
 
-Open Meteo is an open sourced historical archive of weather and environmental variables provided for free for hourly weather observations with a very large geographic coverage. Although regional weather cannot capture microclimates accurately it is sufficent to investigating the realtionships between energy related variables and weather based variables.
-
-
+Open-Meteo provides an open-source historical archive of weather and environmental variables, offering free hourly weather observations with broad geographic coverage. While regional weather data cannot capture local microclimates precisely, it is sufficient for investigating relationships between energy-related variables and environmental conditions.
 
 ### 2.4.1 Why Supabase?
 
 Supabase was chosen as the storage platform for the following reasons:
-- A PostgreSQL instance with ACID guarantees and indexing for faster querying 
-- A remote set up suitable for deployment 
-- Simple integration from python via a client interface and some easily acessible API keys
-- Can easily add on new tables for future extension work 
 
-The supabase has also a very freindly API ehich will allow for smoother data ingestion 
+* A PostgreSQL instance with ACID guarantees and indexing for efficient querying
+* A remote setup suitable for deployment
+* Simple Python integration via a client interface and API keys
+* Support for adding new tables for future extension work
 
-### 2.4.2 Schema design 
+Supabase also provides a user-friendly API that simplifies data ingestion.
 
-The schema is organised arounnd the dimensions of time and region. The three main with validated historical data are the following:
-- `historic_demand` - energy demand and power flow data
-- `carbon_intensity` - carbon intensity and generation mix data
-- `weather` -waether data
+### 2.4.2 Schema Design
 
-The following SQL defenitions willbe used to create the tbles and indexes for much faster querying. Theese queries can be executed in the Supabase SQL editor to repoduce results locally 
+The schema is organised around the dimensions of time and region. The three main tables containing validated historical data are:
+
+* `historic_demand` – energy demand and power flow data
+* `carbon_intensity` – carbon intensity and generation mix data
+* `weather` – weather data
+
+The following SQL definitions are used to create the tables and indexes for efficient querying. These queries can be executed in the Supabase SQL editor to reproduce results locally.
 
 #### `weather` table
 
@@ -330,78 +320,351 @@ CREATE TABLE historic_demand (
 CREATE INDEX idx_historic_demand_datetime ON historic_demand(datetime);
 ```
 
-
-
 ### 2.4.3 Data Cleaning
 
-Given that the datasets used in this project come from multiple sources that have different structures and temporal solution data must be standardised before it is storedd in the relational database. This therfore requires for a well deatiled cleaning stage so that it can be applied across all the data including the newly ingested data.
-
+Given that the datasets used in this project originate from multiple sources with differing structures and temporal resolutions, data must be standardised before being stored in the relational database. This requires a well-defined cleaning stage that can be consistently applied to both historical and newly ingested data.
 
 <br>
 <p align="center">
-    <img src="../assets/data_cleaning.svg" alt="Data Cleaning" >
+    <img src="../assets/data_cleaning.svg" alt="Data Cleaning">
 </p>
 <br>
 
-The first stage in the cleanning requires the timestamp to be normalised to a single format. As some external providers may provide timestamps that are not timezone aware timezone normalisation will be crucial for temporal allignment.
+The first cleaning step involves timestamp normalisation. Some external providers supply timestamps that are not timezone-aware, making normalisation essential for correct temporal alignment.
 
-The second step is to standardise the schema of the data to make sure that all fields have the same format. Additionaly some data may not come in the format that is alligned with the database schema. For example demand data does not come with a time stamp but rather in 2 seperate fields SETTELMENT_DATE and SETELMENT_PERIOD where setelement period is a number from 1 to 48 of half an hour increments, this needs to be processed into a timezone aware timestamp bbefore being added to the database.
+The second step standardises data schemas to ensure all fields align with the database design. For example, demand data is provided using `SETTLEMENT_DATE` and `SETTLEMENT_PERIOD` fields, which must be converted into a timezone-aware timestamp before insertion.
 
-The next step is to handle any duplicates. Composite keys (datetime, region) or primary keys(datetime) can be made to ensure that data has no duplicates. When usperting new data into Supabase there is functionality that allows Supabase to ignore duplicates that are being added so acts as a second line of defense to ensure that the relational database only conatins unique data points.
+The next step handles duplicate records. Composite keys (`datetime`, `region_id`) or primary keys (`datetime`) are used to enforce uniqueness. Supabase upsert functionality provides an additional safeguard by ignoring duplicate records during ingestion.
 
-The next step is handling missing data. Rather than deleting all the records with missing fields the project will meaintain all records to reflect the obervational neture of the datasets and will perfom the filtering of missing values on the client level. This gives the possibilty of expanding investigational capabilties around incomplete data points in the future.
+Missing data is handled conservatively. Rather than removing records with missing fields, all records are retained to reflect the observational nature of the datasets. Filtering of missing values is performed at the client level, preserving opportunities for future investigation.
 
-The final stage is to have sanity & range checks to detect any implausible data points such as having a neagtive demand or a temapture over 100. Record sthat fail to pass this stage are not added to the Database as they are unrealistic and physically impossible to ensure only validated data is used in the dashboard 
+The final step applies sanity and range checks to detect implausible values, such as negative demand or unrealistic temperature readings. Records failing these checks are excluded from the database to ensure that only validated data is used in the dashboard.
 
-Collectively the steps above ensure that the datasets are consistent and that they are suitable for exploratory analysis.
+Collectively, these steps ensure that the datasets are consistent and suitable for exploratory analysis.
 
+### 2.4.4 Data Quality
 
-### 2.4.4 Data Quality 
+To assess data quality and ensure compliance with the standards described above, a dedicated notebook (`notebooks/data_analysis.ipynb`) was used. This notebook also supports bulk loading of data into a separate database instance for local experimentation.
 
-To make sure that the data is of good quality and check how much of the data is inline with the standards set above a dedicated notebook can be found in `notebooks\data_analysis.ipynb`. This notebook can also be used to bulk add data to a seperate database instance for local experimentation.
+The first quality check assessed temporal completeness by comparing expected and observed timestamps.
+<br>
 
-The first quality check that was assesed is temporal completeness which is simply a measure of how many timesatmps you have and the amount of timesatmps that you expect to have. This is used to 
+| Dataset          | Expected Coverage     | Observed Coverage | Time Gaps Detected | Action Taken          |
+| ---------------- | --------------------- | ----------------- | ------------------ | --------------------- |
+| Historic Demand  | 2020–present (hourly) | 2020–present      | No                 | Accepted              |
+| Carbon Intensity | 2020–present (hourly) | 2020–present      | Minor gaps         | Accepted & documented |
+| Weather          | 2020–present (hourly) | 2020–present      | No                 | Accepted              |
 
-| Dataset            | Expected Coverage        | Observed Coverage        | Time Gaps Detected | Action Taken              |
-|--------------------|--------------------------|--------------------------|--------------------|---------------------------|
-| Historic Demand    | 2020–present (hourly)    | 2020–present             | No                 | Accepted                  |
-| Carbon Intensity   | 2020–present (hourly)    | 2020–present             | Minor gaps         | Accepted & Documented     |
-| Weather            | 2020–present (hourly)    | 2020–present             | No                 | Accepted                  |
+<br>
+The second quality check verified that no duplicate records were present.
+<br>
 
-The second quality check is to make sure that there are no duplicates in the data records that will be uplaoded. This was perfomed by using composite keys(`datetime`, `region_id`) for where regions are avaialable and if not then use `datetime` as the primary key
+| Dataset          | Key Used             | Duplicates Found | Resolution Strategy     |
+| ---------------- | -------------------- | ---------------- | ----------------------- |
+| Historic Demand  | datetime             | No               | No action required      |
+| Carbon Intensity | datetime + region_id | Yes (2,982)      | Deduplicated / upserted |
+| Weather          | datetime + region_id | No               | No action required      |
 
-| Dataset            | Key Used                    | Duplicates Found | Resolution Strategy      |
-|--------------------|-----------------------------|------------------|--------------------------|
-| Historic Demand    | datetime                    | No               | No action required       |
-| Carbon Intensity   | datetime + region_id        | Yes (2,982)      | Deduplicated / upserted  |
-| Weather            | datetime + region_id        | No               | No action required       |
+<br>
+The third quality check analysed missing values across datasets.
+<br>
 
+| Dataset          | Fields Affected            | Missing Values Present | Handling Strategy        |
+| ---------------- | -------------------------- | ---------------------- | ------------------------ |
+| Historic Demand  | Minor operational fields   | Yes (low proportion)   | Retained, visually shown |
+| Carbon Intensity | Generation mix fields      | Yes                    | Retained, documented     |
+| Weather          | Precipitation, cloud cover | Yes                    | Retained, no imputation  |
 
-The third quality check was a missing value analysis to see how many incomplete obervations are made within each dataset.
+<br>
+The final quality check applied sanity and range validation.
+<br>
 
-| Dataset            | Fields Affected        | Missing Values Present | Handling Strategy              |
-|--------------------|------------------------|------------------------|--------------------------------|
-| Historic Demand    | Minor operational fields | Yes (low proportion) | Retained, visually apparent    |
-| Carbon Intensity   | Generation mix fields  | Yes                   | Retained, documented           |
-| Weather            | Precipitation, cloud cover | Yes              | Retained, no imputation        |
+| Dataset          | Check Performed         | Issues Detected | Action Taken |
+| ---------------- | ----------------------- | --------------- | ------------ |
+| Historic Demand  | Non-negative demand     | No              | Accepted     |
+| Carbon Intensity | Non-negative generation | Rare anomalies  | Excluded     |
+| Weather          | Physical plausibility   | No              | Accepted     |
 
-
-The last quality check was to make sure that Sanity and Range Checks were implmented to the 3 seperate datasets.
-
-| Dataset            | Check Performed            | Issues Detected | Action Taken              |
-|--------------------|----------------------------|-----------------|---------------------------|
-| Historic Demand    | Non-negative demand        | No              | Accepted                  |
-| Carbon Intensity   | Non-negative generation    | Rare anomalies  | Excluded                  |
-| Weather            | Physical plausibility      | No              | Accepted                  |
-
+<br>
+---
 
 ## 2.5 Design Trade-offs
 
-The design of the Uk energy dahsboard involved a series of delibrate deciosn that balance explotaory capbility, system complexity and perfomance whilst remianing in the project scope. Rather than maximising the technical complexity or the number of the features there was a bigger focus on enabling reliable exploratory analysis
+The design of the UK Energy Dashboard involved a series of deliberate decisions to balance exploratory capability, system complexity, and performance while remaining within project scope. Rather than maximising technical complexity or feature count, the focus was on enabling reliable exploratory analysis.
 
-The choice for the dashboard framework is a python-based lightweight library called streamlit. Streamlit has great support for cloud deployment offering its own free solutions for public project for free under the "streamlit cloud" franchise. Additionaly streamlit is very easy to run locally and does not need any additional steps accept for being downloaded via pip. However this lighrweight framework abstract away from the finegrailed customisations other frameworks can provide. However this was considered an acceptable trade off as the project is analytical rather than presantation driven objectives.
+A lightweight Python-based framework, Streamlit, was selected for the dashboard. Streamlit provides strong support for cloud deployment through Streamlit Community Cloud and is straightforward to run locally using `pip`. However, it abstracts away fine-grained frontend customisation available in other frameworks. This was considered an acceptable trade-off given the analytical rather than presentation-driven goals of the project.
 
-As the project is to be deployed, a remote relational database was chosen over a flat file. This will introduce a lot of complexity to set up the relational database and make sure that it can work. However this additional complexity is acceptable as it will allow for much more effecient querying and indexing and also allow both local and deployed set ups to run smoothly as the database will be acessed the same way.
+As the project is deployed, a remote relational database was chosen over flat-file storage. While this introduces additional setup complexity, it enables efficient querying, indexing, and consistent access across both local and deployed environments.
+
+All analysis is performed at national or regional level. This limits geographical granularity but aligns with the availability of public data and the scope of the project.
+
+# 3. Methodolgies 
+
+## 3.1 Metholdogical Positionaing 
+
+In this project we are introducing a methodology model on an interactive Exploratory Data Analysis (EDA) level. The dashboard should not generate static summaries or static plots; it is built to dynamically investigate energy demand, environmental, and geographical data. These visualisations aim to minimize the cognitive load on the end user, but also get as much insight from it, by generating complex visualisations that simplify temporal, geographic, and compressed patterns, which are often far more difficult to see in a simple time series or scatter plot.
+
+## 3.2 Summary tab 
+
+The Summary tab provides a high level view of all the data in an aggregated manner and acts as the entry point for the user. As shown below the Summary dashboard contains the main statistics with contextual visaul indicators 
+
+<br>
+<p align="center">
+    <img src="../assets/summary_kpis.png" alt="Summary KPIs" >
+</p>
+<br>
+
+To quantify overall directional change within the selected time window, a simple trend metric is computed by splitting the time series into two equal halves and comparing their mean values. Formally, let $( {x_1, x_2, \dots, x_n} )$ denote the observed values over the selected period, where $( n )$ is even. The trend is defined as:
+
+$$
+\text{Trend} = \frac{\bar{x}_{\text{second}} - \bar{x}_{\text{first}}}{\bar{x}_{\text{first}}} \times 100
+$$
+
+where:
+
+$$
+\bar{x}_{\text{first}} = \frac{1}{n/2} \sum_{i=1}^{n/2} x_i
+$$
+
+$$
+\bar{x}_{\text{second}} = \frac{1}{n/2} \sum_{i=n/2+1}^{n} x_i
+$$
+
+Additioanlay using some conditional logic the user gets acess to some insights into the charectistics of the data. This includes insights suchas the variabilty of the data, cleanset region & highest carbon region, weather conditions and wind conditions in a descriptive manner.
+
+<br>
+<p align="center">
+    <img src="../assets/summary_insights.png" alt="Summary KPIs" >
+</p>
+<br>
+
+There is also a Time series chart to give the users an overview of how the variable interaction is like, the key variables plots together. It enables you to understand how different variables may be associated. The variables have been normalised so that the 4 variables all have a range of 0-100 in order to clearly observe the relation of variables to each other and without blown-out timeseries appearing in big quantities. The min max normalisation was implemented in the following way:
+
+
+$$
+x_{\text{norm}} = \frac{x - x_{\min}}{x_{\max} - x_{\min}} \times 100
+$$
+
+where: 
+
+$$
+x_{\min} = \min(x_1, x_2, \dots, x_n)
+$$
+
+$$
+x_{\max} = \max(x_1, x_2, \dots, x_n)
+$$
+
+
+- $x$ is the observed value,
+- $x_{\min}$ and $x_{\max}$ are computed over the selected time range,
+- $x_{\text{norm}} \in [0, 100]$.
+
+<br>
+<p align="center">
+    <img src="../assets/summary_time_series.png" alt="Summary KPIs" >
+</p>
+<br>
+
+## 3.3 Energy & Carbon Intensity tab
+
+The Energy & Carbon tab supports detailed exploration of electricty demand, carbon intensity, genration mix and power flow. This tab integrates multiple visulisations each chosen to highlight a specefic structural aspect of the system 
+
+<br>
+<p align="center">
+    <img src="../assets/carbon_map.png" alt="Carbon Map" width="50%" height="50%">
+</p>
+<br>
+
+
+Geographical choropleth maps as shown here are tools for visualizing carbon intensity data. In this situation, maps are much preferred because the user is able to visualize the spatial dimensions of the data possible if they choose to use them. For instance, responses to questions such as are southern regions more polluted than northern regions? etc. This enables you to identify clusters of patterns and outliers.
+
+<br>
+<p align="center">
+    <img src="../assets/carbon_heat_map.png" alt="Carbon Heat Map" >
+</p>
+<br>
+
+Heatmaps are great to show temporal intensity over a 7 day period. The data magnitude can be presented by means of colour, in contrast to either size or position. This is preferable over large time series because the former takes the entire data and condenses it into one view: this allows distinguishing periodic patterns. This enables the user to assess short-term trends and long-term trends by pressing the date range.
+<br>
+<p align="center">
+    <img src="../assets/generation_mix.png" alt="Generation Mix" >
+</p>
+<br>
+
+Stacked bar charts represent generation mix compositions grouped by low carbon, fossil fuels, and renewable types of energy. This enables the user to compare the proportional differences between renewable and non-renewable sources in a single visual frame. It would be less effective to split this into 2 plots, one for each type of energy source.
+
+<br>
+<p align="center">
+    <img src="../assets/power_bar_chart.png" alt="Power Bar Chart">
+</p>
+<br>
+
+The net energy flow by country is shown on diverging horizontal bar charts. A zero line in this diagram puts the focus on balance and magnitude at the same time. Other formats, such as grouped bar charts, would obscure this directional data. This visualisation allows for multi-dimensional exploration by combining temporal, regional, and structural views via a single interface.
+
+## 3.4 Weather tab
+
+The Weather tab introduces environmental variables to provide some context into why the energy systme may be beahving in a certain way. Time-series plots are used to visualise temperature, wind speed, precipitation, and cloud cover over a selected period of time.
+
+<br>
+<p align="center">
+    <img src="../assets/weather_kpis.png" alt="Weather KPIs">
+</p>
+<br>
+
+Heatmaps for an example are excellent for showing temporal intensity over a 7-day interval. The overall weight of the data is converted into colour, neither the position nor the size of the chart. This is preferable compared to conventional time series, since it bundles the data together in one view and enables recognition of periodic processes. It allows the user to assess short term and long term trends by toggling the date range. Here a heatmap can be used and also for plotting heatmaps for various variables, this helps to explore the data even more
+
+<br>
+<p align="center">
+    <img src="../assets/weather_heat_map.png" alt="Weather Heat Map">
+</p>
+<br>
+
+Scatter plots are used to explore potential relationships between weather variables and energy demand. This choice allows users to visually assess linearity & clustering without the need for statistical models. It gives flexibility because the focus of the application is to explore relationships with different variables and the scatter plot allows for the maximum flexibility by giving users the option to select any 2 variables to see how they may relate, enabling the initial problem statement in the introduction.
+
+<br>
+<p align="center">
+    <img src="../assets/weather_energy_scatter.png" alt="Weather Energy Scatter plot ">
+</p>
+<br>
+
+## 3.5 Experimentational tab 
+
+The Experimentation tab provides and environment for the user to experiment and apply simple quantative models to the available data. This section is seperated to diffrentiate between exploratory modelling and analysis.  
+
+### 3.5.1 Linear Regression
+
+<br>
+<p align="center">
+    <img src="../assets/linear_regr.png" alt="Linear Regression">
+</p>
+<br>
+
+Linear regression is implemented as an experimental analytical tool to explore linear dependence between a target variable and one explanatory variable. The model is defined as:
+
+$$
+y = \beta_0 + \beta_1 x + \varepsilon
+$$
+
+where:
+- $y$ is the dependent variable (e.g. electricity demand or carbon intensity),
+- $x$ is the explanatory variable,
+- $\beta_0$ is the intercept,
+- $\beta_1$ is the slope coefficient,
+- $\varepsilon$ is a random error term.
+
+Model parameters are estimated using ordinary least squares (OLS), which minimises the sum of squared residuals:
+
+$$
+\min_{\beta_0, \beta_1} \sum_{i=1}^{n} (y_i - \hat{y}_i)^2
+$$
+
+Regression outputs are evaluated using standard error metrics.
+
+**Mean Absolute Error (MAE):**
+
+$$
+\text{MAE} = \frac{1}{n} \sum_{i=1}^{n} \lvert y_i - \hat{y}_i \rvert
+$$
+
+**Root Mean Squared Error (RMSE):**
+
+$$
+\text{RMSE} = \sqrt{\frac{1}{n} \sum_{i=1}^{n} (y_i - \hat{y}_i)^2}
+$$
+
+These metrics are selected because they provide intuitive measures of the average deviation between predicted and observed values. The Regression results are visualised using predicted vs actual plots, allowing users to assess the goodness of the model. Due to the aggregated and observational nature of the data, regression outputs are treated as exploratory indicators rather than predictive models.
+
+### 3.5.2 Correlation Analysis
+
+<br>
+<p align="center">
+    <img src="../assets/corr_matrix.png" alt="Linear Regression" width="50%" height="50%">
+    <img src="../assets/corr_analysis.png" alt="Linear Regression" width="50%" height="50%">
+</p>
+<br>
+
+Correlation is a numerical measurement technique to determine the magnitude and direction of linear relations between pairs of variables (electricity demand, carbon intensity, generation variables, storage variables). That analysis aids in exploratory research as a numerical summary serves to augment the visual inspection at first glance and aids in prioritizing variables for further investigation. The dashboard operates with Pearson’s correlation coefficient, defined as:
+
+$$ r = \frac{\sum_{i=1}^{n} (x_i - \bar{x})(y_i - \bar{y})} {\sqrt{\sum_{i=1}^{n} (x_i - \bar{x})^2}\sqrt{\sum_{i=1}^{n} (y_i - \bar{y})^2}} $$
+
+where:
+
+- $x_i$ and $y_i$ are paired observations,
+- $\bar{x}$ and $\bar{y}$ are sample means,
+- $n$ is the number of observations.
+
+The coefficient assumes coefficients that fall within the interval $[-1, 1]$, such that values near $+1$ represent a strong positive linear association, values near $-1$ a strong negative association, and values near 0 a weak or no linear association.
+
+Correlation scores are determined by the timescale selected by the user, along with the location (region of interest) to grant access to temporal context. We highlight that these values are simply descriptive associations rather than proof of association from a causal perspective. We present a correlation heatmap showing the global pairwise relationships between a subsample of the variables we wish to examine in parallel. Colour intensity indicates the scale and direction of association—it helps users efficiently identify clusters of closely connected variables and redundant features in that set. This representation above has opted for a scale with more variables than a large number of pairwise scatter plots, in order to represent rapid pattern detection. This heatmap can be applied to analyse the data: it permits exploring the structure that needs more in-depth exploration including plots or models at best, and only then, that which provides a high degree of accuracy.
+
+To bring the focus and attention of analysis by comparing one particular target variable (e.g., national demand) with all other variables a ranked horizontal bar chart is created. This visualisation provides summaries of correlation degree on a single axis which can help in comparing the strength and the direction of the relations. A ranked-based format instead of tabulated summary so as to have ranking and contrast and the user can easily locate the most relevant positive and negative factors.
+
+
+### 3.5.3 Random Forest Tree 
+
+<br>
+<p align="center">
+    <img src="../assets\random_forest.png" alt="Random Forest Tree">
+</p>
+<br>
+
+A Random Forest model consists of an ensemble of $T$ decision trees, each trained on a bootstrapped subset of the data and a random subset of input features. The prediction of the Random Forest regressor is given by:
+
+$$
+\hat{y}(x) = \frac{1}{T} \sum_{t=1}^{T} f_t(x)
+$$
+
+where:
+- $T$ is the number of trees in the forest,
+- $f_t(x)$ is the prediction of the $t$-th decision tree for input vector $x$.
+
+Each decision tree recursively partitions the feature space by selecting split points that minimise a node impurity measure. For regression tasks, the impurity at a node is measured using mean squared error (MSE):
+
+$$
+\text{MSE} = \frac{1}{n} \sum_{i=1}^{n} (y_i - \bar{y})^2
+$$
+
+where:
+- $y_i$ are the observed target values within the node,
+- $\bar{y}$ is the mean target value of the node,
+- $n$ is the number of samples reaching the node.
+
+At each split, the algorithm selects the feature and threshold that result in the greatest reduction in MSE across the child nodes.
+
+
+To reduce variance and improve generalisation, each tree is trained on a bootstrapped sample of the training data. Additionally, at each split, only a random subset of features is considered. This decorrelates individual trees and improves ensemble robustness.
+
+
+Random Forest predictions are evaluated using the same error metrics as linear regression to allow direct comparison:
+
+**Mean Absolute Error (MAE):**
+
+$$
+\text{MAE} = \frac{1}{n} \sum_{i=1}^{n} \lvert y_i - \hat{y}_i \rvert
+$$
+
+**Root Mean Squared Error (RMSE):**
+
+$$
+\text{RMSE} = \sqrt{\frac{1}{n} \sum_{i=1}^{n} (y_i - \hat{y}_i)^2}
+$$
+
+Following Random Forest algorithm implementation, the dashboard shows a simple set of outputs which includes model metrics and a ranked feature importance table. These outputs are supplemented with transparent commentary on the model behaviour, and users can also make sense of how different feature choices and time windows influence the model. The error measures (MAE and RMSE) are demonstrated to measure the prediction error in the same units as the target variable, and the coefficient of determination (R²) offers a normalized measure of explanatory power for cross-experiment comparisons. Feature importance rankings are given to show the relative influence of input variables on the model’s decisions, which can support interpretability without visualizing individual decision trees. Together, these representations are intended to facilitate exploratory experimentation and to enable model behaviour to be seen as observable and comparable, not as a black-box predictor.
+
+
+## 3.6 Limitations 
+
+This project has purposefully chosen some analytical methods to allow exploratory analysis, and these have methodological limitations which are to be accepted. 
+
+First, correlation analysis only gives the correlation between variables that is linearly proportional to each other; which does not capture the non-linear and directional effects of the analysis. Correlation analysis is also time and place dependent and so differences in observed associations depend greatly on user defined filters. Consequently, our correlations are descriptive, and not evidence of causality. 
+
+Second, linear regression assumes a linear relationship between variables, constant variance of errors, and independent observations. The assumptions likely do not apply properly for the energy time-series data as it has a clear temporal autocorrelation and seasonal structure. As a result, regression results are present only for exploratory consideration rather than for statistical inference. 
+
+Third, Random Forest models can fit non-linear relationships; but, they can overfit when dealing with highly autocorrelated time-series data, such as when lagged variables are also included. Model complexity is limited, but key performance measures are based on in-sample fit rather than generalisation capability. In addition, Random Forests have less interpretability than parametric models despite the inclusion of feature importance metrics. 
+
+Lastly, normalisation and aggregation decisions prepared in the context of visualisation could have implications on the results of analysis. Although they are required for exploratory comparison, these transformations can hide absolute magnitudes as well as local variation, suggesting that careful interpretation is imperative in addition to raw value plots.
+
 
 ## References
 
