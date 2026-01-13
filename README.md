@@ -1,3 +1,7 @@
+**Project Deployment:** [https://ukenergydashboard.streamlit.app](https://ukenergydashboard.streamlit.app) <br>
+**Project Documentation:** documentation/project_documentation.md <br>
+**Assignment Brief:** documentation/assignment_brief.md <br>
+
 ## Overview
 
 An interactive Streamlit dashboard analysing UK electricity demand, generation, carbon intensity, and weather data.
