@@ -26,17 +26,21 @@ Net zero may remain a work in progress, but empowering people with tools to inve
 
 Therefore, for anyone intending to examine the interaction between electricity demand, carbon intensity, generation mix, and environmental factors, users will have to find either static summaries or perform significant preprocessing by themselves. This piece is inspired largely by the idea that data accessibility does not imply the ability to generate analytical insight, specifically in exploratory data analysis.
 
+Ethical and governance aspects of data usage also are considered in this project. All datasets are publicly available, responsibly sourced, and contain no personal or identifiable information, so it meets the privacy and data protection standards. Also, the system aims to facilitate transparency and reproducibility by having documented data provenance, open-source code, and clearly defined analytical methods so that the users find out where the data came from as well as the limitations of the insights.
+
 <br><br>
 
 ---
 
-## 1.2 Problem Definition
+## 1.2 Problem Definitio
 
 The central problem addressed by this project is:
 
 > How can multiple UK energy and environmental datasets be integrated into a single interactive system that allows intuitive exploration of energy and environmental patterns and trends? 
 
 Although publicly available UK energy data continues to increase in availability (NESO, 2024), these sources remain fragmented and often exist at differing temporal resolutions, requiring substantial preprocessing and technical knowledge. This project aims to address this problem by providing an interactive dashboard that integrates electricity demand, carbon intensity, and weather data into a single system for exploratory analysis. The system also supports exploration of regions both in isolation and in combination.
+
+While Great Britain is not a physical island in a strict energy sense, the electricity system of the country can be described as an energy island system with clearly defined borders and limited external coupling. Cross-border electricity interconnectors themselves behave as constrained boundary conditions rather than free-market links, in which most system behaviour (demand, generation mix, carbon intensity, balancing) comes from internal dynamics. By framing the UK electricity system with this model, it follows the concept of what an island dashboard would be like, where the national grid is perceived as a semi-closed system with the possibility of investigating it holistically where its behavior is confined to certain spatial and operational boundaries.
 
 <br><br>
 
@@ -72,6 +76,12 @@ Although this helps to guarantee consistent and trustworthy insights, it restric
 
 The main limitation across the two platforms is not on quality of the data but on the freedom of the user to interact with and the scale of data input into it. EnergyDashboard does best around operational data real time while NESO’s monthly statistics give historical depth for reliability, but not interactivity. The one platform does not combine multiple datasets in a single interaction system, which is meant for exploratory visualizations.
 
+| Platform                                          | Interactivity                                          | Historical Depth                                | Analytical Capability                                                            | Openness & Accessibility                                      |
+| ------------------------------------------------ | ----------------------------------------------------- | ----------------------------------------------- | -------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| **EnergyDashboard (energydashboard.co.uk)**      | Moderate – fixed filters and near-real-time views     | Limited – primarily short-term and recent data  | Low – operational monitoring with minimal exploratory analysis                   | High – publicly accessible, no technical setup required       |
+| **NESO Monthly Energy Statistics**                | Low – static reports and predefined charts            | High – long-term historical summaries           | Low to moderate – descriptive summaries without custom analysis                  | High – openly published reports, but limited user interaction |
+| **This Project: UK Energy Dashboard**             | High – dynamic filtering by region, time, and variable | High – continuous hourly data from 2020 onwards | Moderate to high – exploratory analysis, correlation, and experimental modelling | High – open-source, reproducible, and publicly deployed       |
+
 <br><br>
 
 ---
@@ -88,7 +98,9 @@ Instead of competing with the existing platforms, this project aims to fill a ga
 
 <br> <p align="center"> <img src="../assets/solution_overview.svg" alt="Solution Overview"> </p> <br>
 
-<br>
+The dashboard will be developed to cater for various users with a variety of analytical needs. It becomes available to the public users, and offers an accessible way of having an insight into high-level trends in electricity demand, carbon intensity and renewable generation - without having extensive technical knowledge. The system allows analysts an interactive experience in exploring historical datasets with a range of filtering options, comparative presentation and exploratory statistical tools. For policy-minded stakeholders, the dashboard presents a clear insight into system-level trends and regional disparities that can prompt evidence based discussion while steering clear of either causal inference or policy guidance.
+
+<br><br>
 
 ## 1.5 Objectives & Scope
 
@@ -138,6 +150,18 @@ To fulfil the gaps identified in the analysis above, a set of core objectives an
 
 
 <br><br>
+
+## 1.6 Dataset Bias & Limitations
+
+Despite the authoritative and suitable datasets utilized in this study for exploratory investigation, they also have their own set of inherent biases and limitations that can influence interpretation. 
+
+All energy and carbon intensity data are aggregated at a national or regional level, thereby smoothing local variation and obscuring intra-regional differences including urban–rural demand patterns, local network constraints, or asset-level renewable intermittency; as a result, the relationships observed reflect system-level behaviour rather than local dynamics. 
+
+Weather variables are also quite restricted, since they are regional proxies (regions rather than site-specific measurements) and microclimates and localized regional fluctuations, including those over short distances, are not included, which means that any environmental factors observed are weakened or fuzzy due to energy variables' relationships, particularly for wind and solar generation. 
+
+Furthermore, carbon intensity values are determined from system-level estimates that merge generation mix data with emissions factors under assumptions about fuel characteristics, plant efficiency, and reporting accuracy. Those values are operational averages rather than marginal emissions, so there is no direct relationship between the short-term changes to carbon intensity and the emissions impact of incremental demand changes. 
+
+Taken together, these limitations reinforce that the dashboard is going to be designed for exploratory insight and pattern discovery and not to infer or attribute factors or causality (e.g., through fine granularity), and that conclusions, particularly when they have to compare regions or drivers of environmental impact, should be read critically.
 
 # 2. Design
 
@@ -414,6 +438,11 @@ All analysis is performed at national or regional level. This limits geographica
 ## 3.1 Metholdogical Positionaing 
 
 In this project we are introducing a methodology model on an interactive Exploratory Data Analysis (EDA) level. The dashboard should not generate static summaries or static plots; it is built to dynamically investigate energy demand, environmental, and geographical data. These visualisations aim to minimize the cognitive load on the end user, but also get as much insight from it, by generating complex visualisations that simplify temporal, geographic, and compressed patterns, which are often far more difficult to see in a simple time series or scatter plot.
+
+We can understand the dashboard structure through the theory of collections and subcollections. The entire historical dataset is the primary collection, with user-chosen regions and time windows as subcollections over which statistics and visualizations are computed. Cross-filtering across regions, variables, and temporal ranges enables comparative slicing of the data, allowing users to examine how patterns change across subsets of the system without altering the underlying data. This allows consistent exploratory analysis because all summary metrics and visual outputs can be derived from clearly defined and reproducible data subsets.
+
+In this project, several analytical paradigms were consciously removed in order to remain methodologically consistent with the exploratory intentions. Formal causal inference techniques are not applied as the collected datasets are observational, aggregated, and subject to confounding variables that could not be properly targeted in this system, while causal language in this domain might lead to inaccurate interpretation. All deep learning methods were also excluded due to their data requirements, opacity, and tuning complexity because of the poor fit with the aim of transparent, user-based exploration especially for non-technical users. Eventually, while short-horizon forecasting models are experimentally presented, the project does not actually make any substantive forecasts, since robust prediction would require explicit treatment of temporal dependence, validation across unseen regimes, and quantifying uncertainty. Such work is outside the intended exploratory scope of the dashboard.
+
 <br><br>
 
 ## 3.2 Summary tab 
@@ -612,6 +641,8 @@ where:
 - $n$ is the number of observations.
 
 The coefficient assumes coefficients that fall within the interval $[-1, 1]$, such that values near $+1$ represent a strong positive linear association, values near $-1$ a strong negative association, and values near 0 a weak or no linear association.
+
+Pearson’s correlation coefficient was chosen to measure linear dependence between variables as our primary purpose in conducting this analysis is exploratory comparison rather than rank-based association. Although Spearman’s rank correlation is more robust to monotonic but non-linear relationships, it has some limitations when considering linear magnitude and scale, two properties required when assessing proportional co-movement between energy demand, generation variables, and carbon intensity. Linear dependence is still useful in this investigation, as it presents a first-order summary of association that can be used in addition to visual inspection to screen the relation among variables quickly. Therefore Pearson correlation is adopted not as a definitive indicator of dependence but rather as an exploratory diagnostic, with information described in a descriptive manner without causal claims.
 
 Correlation scores are determined by the timescale selected by the user, along with the location (region of interest) to grant access to temporal context. We highlight that these values are simply descriptive associations rather than proof of association from a causal perspective. We present a correlation heatmap showing the global pairwise relationships between a subsample of the variables we wish to examine in parallel. Colour intensity indicates the scale and direction of association—it helps users efficiently identify clusters of closely connected variables and redundant features in that set. This representation above has opted for a scale with more variables than a large number of pairwise scatter plots, in order to represent rapid pattern detection. This heatmap can be applied to analyse the data: it permits exploring the structure that needs more in-depth exploration including plots or models at best, and only then, that which provides a high degree of accuracy.
 
