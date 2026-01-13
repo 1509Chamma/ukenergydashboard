@@ -26,7 +26,7 @@ Net zero may remain a work in progress, but empowering people with tools to inve
 
 Therefore, for anyone intending to examine the interaction between electricity demand, carbon intensity, generation mix, and environmental factors, users will have to find either static summaries or perform significant preprocessing by themselves. This piece is inspired largely by the idea that data accessibility does not imply the ability to generate analytical insight, specifically in exploratory data analysis.
 
-
+<br><br>
 
 ---
 
@@ -37,6 +37,8 @@ The central problem addressed by this project is:
 > How can multiple UK energy and environmental datasets be integrated into a single interactive system that allows intuitive exploration of energy and environmental patterns and trends? 
 
 Although publicly available UK energy data continues to increase in availability (NESO, 2024), these sources remain fragmented and often exist at differing temporal resolutions, requiring substantial preprocessing and technical knowledge. This project aims to address this problem by providing an interactive dashboard that integrates electricity demand, carbon intensity, and weather data into a single system for exploratory analysis. The system also supports exploration of regions both in isolation and in combination.
+
+<br><br>
 
 ---
 
@@ -70,6 +72,8 @@ Although this helps to guarantee consistent and trustworthy insights, it restric
 
 The main limitation across the two platforms is not on quality of the data but on the freedom of the user to interact with and the scale of data input into it. EnergyDashboard does best around operational data real time while NESO’s monthly statistics give historical depth for reliability, but not interactivity. The one platform does not combine multiple datasets in a single interaction system, which is meant for exploratory visualizations.
 
+<br><br>
+
 ---
 
 ## 1.4 The Positioning of This Project
@@ -84,6 +88,7 @@ Instead of competing with the existing platforms, this project aims to fill a ga
 
 <br> <p align="center"> <img src="../assets/solution_overview.svg" alt="Solution Overview"> </p> <br>
 
+<br>
 
 ## 1.5 Objectives & Scope
 
@@ -148,6 +153,7 @@ In this regard, the restrictions below shape the design approach of this applica
 - Deployment requirement concurrent with local setups.
 
 The limitations are what prompted a modular Streamlit application to implement a remote relational database that enables the
+<br><br>
 
 ---
 
@@ -172,7 +178,7 @@ There is also consideration of pagination logic in terms of access to the data o
 
 A background data update mechanism also allows new data to be imported when a new application is launched, keeping the data fresh. This process will be independent of the UI, enabling the user to interact with the application while refreshing the data. With the updated data the cached results are removed and the dashboard refreshes with the latest data.
 
-All in all, this layout allows you to operate only on data with solid and consistent validation while remaining responsive. The above system-level architecture is depicted, showing how the data is input from various external sources and passed through validation and storage before being accessed using the interactive UI.
+All in all, this layout allows you to operate only on data with solid and consistent validation while remaining responsive. The above system-level architecture is depicted, showing how the data is input from various external sources and passed through validation and storage before being accessed using the interactive UI. <br><br>
 
 ---
 
@@ -207,6 +213,8 @@ The figure above demonstrates how the application is broken down into single-res
 Decomposition enables incremental development and testing of individual components, reducing the risk of cascading failures. It also allows new features to be introduced with minimal refactoring, as components operate in isolation with well-defined behaviour.
 
 Together, abstraction and decomposition ensure that the system remains flexible and maintainable while supporting complex exploratory analysis through a clear and intuitive user interface.
+
+ <br><br>
 
 ---
 
@@ -387,6 +395,7 @@ The final quality check applied sanity and range validation.
 
 <br>
 ---
+<br><br>
 
 ## 2.5 Design Trade-offs
 
@@ -398,11 +407,14 @@ As the project is deployed, a remote relational database was chosen over flat-fi
 
 All analysis is performed at national or regional level. This limits geographical granularity but aligns with the availability of public data and the scope of the project.
 
+<br><br>
+
 # 3. Methodolgies 
 
 ## 3.1 Metholdogical Positionaing 
 
 In this project we are introducing a methodology model on an interactive Exploratory Data Analysis (EDA) level. The dashboard should not generate static summaries or static plots; it is built to dynamically investigate energy demand, environmental, and geographical data. These visualisations aim to minimize the cognitive load on the end user, but also get as much insight from it, by generating complex visualisations that simplify temporal, geographic, and compressed patterns, which are often far more difficult to see in a simple time series or scatter plot.
+<br><br>
 
 ## 3.2 Summary tab 
 
@@ -466,6 +478,8 @@ $$
 </p>
 <br>
 
+<br>
+
 ## 3.3 Energy & Carbon Intensity tab
 
 The Energy & Carbon tab supports detailed exploration of electricty demand, carbon intensity, genration mix and power flow. This tab integrates multiple visulisations each chosen to highlight a specefic structural aspect of the system 
@@ -502,6 +516,8 @@ Stacked bar charts represent generation mix compositions grouped by low carbon, 
 
 The net energy flow by country is shown on diverging horizontal bar charts. A zero line in this diagram puts the focus on balance and magnitude at the same time. Other formats, such as grouped bar charts, would obscure this directional data. This visualisation allows for multi-dimensional exploration by combining temporal, regional, and structural views via a single interface.
 
+<br><br>
+
 ## 3.4 Weather tab
 
 The Weather tab introduces environmental variables to provide some context into why the energy systme may be beahving in a certain way. Time-series plots are used to visualise temperature, wind speed, precipitation, and cloud cover over a selected period of time.
@@ -526,6 +542,7 @@ Scatter plots are used to explore potential relationships between weather variab
 <p align="center">
     <img src="../assets/weather_energy_scatter.png" alt="Weather Energy Scatter plot ">
 </p>
+<br>
 <br>
 
 ## 3.5 Experimentational tab 
@@ -652,6 +669,8 @@ $$
 
 Following Random Forest algorithm implementation, the dashboard shows a simple set of outputs which includes model metrics and a ranked feature importance table. These outputs are supplemented with transparent commentary on the model behaviour, and users can also make sense of how different feature choices and time windows influence the model. The error measures (MAE and RMSE) are demonstrated to measure the prediction error in the same units as the target variable, and the coefficient of determination (R²) offers a normalized measure of explanatory power for cross-experiment comparisons. Feature importance rankings are given to show the relative influence of input variables on the model’s decisions, which can support interpretability without visualizing individual decision trees. Together, these representations are intended to facilitate exploratory experimentation and to enable model behaviour to be seen as observable and comparable, not as a black-box predictor.
 
+<br><br>
+
 
 ## 3.6 Limitations 
 
@@ -664,7 +683,91 @@ Second, linear regression assumes a linear relationship between variables, const
 Third, Random Forest models can fit non-linear relationships; but, they can overfit when dealing with highly autocorrelated time-series data, such as when lagged variables are also included. Model complexity is limited, but key performance measures are based on in-sample fit rather than generalisation capability. In addition, Random Forests have less interpretability than parametric models despite the inclusion of feature importance metrics. 
 
 Lastly, normalisation and aggregation decisions prepared in the context of visualisation could have implications on the results of analysis. Although they are required for exploratory comparison, these transformations can hide absolute magnitudes as well as local variation, suggesting that careful interpretation is imperative in addition to raw value plots.
+<br><br>
 
+# 4. Evaluation 
+
+## 4.1 Evaluation Overview 
+
+This section evaluates the UK Energy & Sustainability Dashboard against the core and optional objectives defined in Section 1.5. Functional completeness, analytical usefulness, performance, usability, and methodological appropriateness are evaluated. These include evidence from the implemented dashboard features, system behaviour under interaction, and analytical outputs produced across different tabs. The evaluation focuses on whether the system fulfils its intended role as an interactive exploratory analysis platform, rather than as an operational monitoring or forecasting system.
+
+<br><br>
+
+## 4.2 Core Objectives Evaluation
+
+### Objective 1: Multi-source Data Integration
+
+> The objective was to bring together electricity demand, carbon intensity, generation mix, power flow, and weather data on a single analytical platform from 01/01/2020 onwards. 
+
+This goal was successfully accomplished. Data from NESO and Open-Meteo are ingested, cleaned, and stored within a unified relational schema. The user dashboard enables them to view and compare the datasets at once via aligned time-series, maps, and comparative plots. The capability to filter for region and time range shows the effective integration across datasets having different temporal resolutions.
+
+### Objective 2: Reliable Data Storage
+
+>The system required a remote relational database with clearly defined schemas and support for repeated ingestion.
+
+The goal was successfully met using Supabase as a PostgreSQL-backed storage layer. The schemas make sure that there is consistency throughout by implementing primary keys, composite uniqueness constraints, and indexing. The ingestion logic also supports idempotent updates, which allows historical data to be updated without duplicating it. The design helps reliable local and deployed execution environments
+
+
+### Objective 3: Interactive Time-series Exploration
+
+>The dashboard was required to support zooming, panning, and multi-variable comparison within time-series plots.
+
+This objective was achieved. In interactive time-series plots, users can sample the trend at different temporal resolutions. The Summary tab also supports min–max normalised multi-variable overlays, with an option for comparative pattern analysis between heterogeneous variables without being affected by scale. This directly enables exploratory analysis.
+
+
+### Objective 4: Regional and Temporal Exploration
+
+>The dashboard was required to support zooming, panning, and multi-variable comparison within time-series plots.
+
+<br>
+<p align="center">
+    <img src="../assets/sidebar.png" alt="Sidebar" width="20%" height="20%">
+
+</p>
+<br>
+
+This objective was successfully achieved. On the dashboard is single-region or multi-region selection, custom date ranges, and predefined windows (like last 7, 30, or 90 days). Changes propagate dynamically across visualisations, which provides rapid comparative exploration across regions and time periods
+
+
+### Objective 5: Summary Statistics
+
+>The system required high-level summary metrics contextualised by visual trends.
+
+We accomplished this goal by displaying average, minimum, maximum, and trend indicators via the Summary tab, as well as additional visualisations. This analysis builds on baseline-relative comparison and yields directional metrics without linear assumptions. This seeks interpretability while ensuring analytical robustness.
+
+### Objective 6: Data-driven Visualisations
+
+>The dashboard was required to employ appropriate visualisations for different data types.
+
+That was achieved in its entirety. The system makes use of time-series plots, choropleth maps, stacked bar charts, heatmaps, diverging bar charts, and scatter plots. Each visualisation is chosen based on the analytical task it supports allowing users to examine temporal, spatial, and structural aspects of the UK energy system.
+
+<br><br>
+
+## 4.3 Optional Objectives Evaluation
+
+### Objective 7: Deployment to Remote Hosting
+
+> The system was required to be deployes on remote hosting 
+
+This optional objective was fully achieved. The dashboard was successfully deployed to Streamlit Community Cloud and remains publicly accessible. The deployed version mirrors local execution behaviour, validating the reproducibility of the system design.
+
+### Objective 8: Experimental Forecasting Tab
+
+> An experimental tab was implemented allowing users to apply linear regression and Random Forest models to selected variables.
+
+This aim was somewhat realized in design. The models work well and offer interpretable outputs but are artificially limited, and presented as exploratory. The absence of formal validation or uncertainty modelling is a deliberate methodological choice rather than an artifact of partial implementation.
+
+
+### Objective 9: Visualisation of Experimental Results
+> Model performance metrics and feature importance outputs are presented clearly following model execution
+
+This objective was partially achieved. The inclusion of MAE, RMSE, R², and feature importance tables allows users to compare experiments and reason about model behaviour, supporting transparent exploration rather than black-box prediction. Although the metrics were implemented the plots of predection vs results was not implemented
+
+<br><br>
+
+## 4.4 Perfomance & Usability 
+
+## 4.5 Reflection & Future Improvement
 
 ## References
 
